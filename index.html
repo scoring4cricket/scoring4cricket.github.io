@@ -688,6 +688,8 @@ body.fit:not(.sc) .col-info{display:flex;flex-direction:column;gap:8px;flex:none
 .gate .field{text-align:left}.gate .row{justify-content:center}
 .gate-logo img{width:min(200px,55vw);height:auto;display:block;margin:0 auto}
 .gsi{display:flex;justify-content:center;min-height:44px}
+.wzc{display:grid;gap:8px}.wzc .panel{padding:10px 12px}.wzc .grid2,.wzc .grid3{gap:8px 10px}.wzc .field{gap:3px}.wzc .field label{font-size:12px}
+.wzc input,.wzc select{padding:7px 10px}.wzc h3{font-size:13px}.morerow{grid-column:1/-1;display:flex;justify-content:flex-end;margin-top:-2px}
 </style>
 </head>
 <body>
@@ -961,7 +963,7 @@ function seedTeams(){return [
   {id:'t2',name:'Emu Plains',squad:['C. Murphy','V. Rao','N. Ahmed','G. Brown','H. Lee','E. Walsh','F. Ali','I. Smith','O. Clarke','W. Das','Z. Khan','R. Menon','A. Fox']},
   {id:'t3',name:'Penrith Gold',squad:['S. Varma','J. Cole','M. Iqbal','T. Reid','K. Bose','D. Lim','P. Nair','H. Grant','E. Shah','L. Moore','B. Roy','G. Dutta']},
   {id:'t4',name:'Glenmore Park Juniors',squad:['O. Park','M. Reddy','J. Tan','A. Bell','R. Shah','K. Wood','S. Rao','L. Ng','D. Hart','T. Bose','F. Kaur']}]}
-function blankWiz(){const d=new Date();return {dt:d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'),gr:'',cn:'',rd:'',u1:'',u2:'',pn:'full',step:1,a:'t1',b:'t2',overs:20,fmt:'std',fh:'yes',ty:'one',mo:'4',ra:'0',pr:'off',pov:'4',ppen:'5',fol:'100',side:0,sel:{},cap:{},vc:{},wk:{},tw:null,td:null,st:'',ns:'',bo:'',cp:'std',bm:'0',lms:'no',rr:'no',nt:'',np:''}}
+function blankWiz(){const d=new Date();return {dt:d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'),gr:'',cn:'',rd:'',u1:'',u2:'',pn:'full',step:1,a:'t1',b:'t2',overs:50,fmt:'std',fh:'yes',ty:'one',mo:'10',ra:'0',pr:'off',pov:'4',ppen:'5',fol:'100',side:0,sel:{},cap:{},vc:{},wk:{},tw:null,td:null,st:'',ns:'',bo:'',cp:'od',bm:'0',lms:'no',rr:'no',nt:'',np:''}}
 function teamById(id){return S.teams.find(t=>t.id===id)}
 function wizSel(id){const w=S.wiz;if(!w.sel[id]){const t=teamById(id);w.sel[id]=t?t.squad.slice(0,11).map((n,i)=>i):[]}return w.sel[id]}
 function xiNames(id){return wizSel(id).map(i=>teamById(id).squad[i])}
@@ -979,27 +981,27 @@ function homeMain(){
   h+=`<div class="steps">${steps.map((t,i)=>`<span class="${w.step>=i+1?'on':''}">${i+1} · ${t}</span>`).join('')}</div>`;
   h+='<div class="hbody">';
   const opts=(v)=>S.teams.map(t=>`<option value="${t.id}" ${t.id===v?'selected':''}>${esc(t.name)}</option>`).join('');
-  if(w.step===1){
-    h+=`<section class="panel" style="display:grid;gap:12px">
+  if(w.step===1){const more=UI.wzMore==null?!!(w.cn||w.rd||w.u1||w.u2):UI.wzMore;
+    h+=`<div class="wzc"><section class="panel" style="display:grid;gap:8px">
       <div class="grid2"><div class="field"><label for="wz-a">Team 1</label><select id="wz-a" data-w="a">${opts(w.a)}</select></div>
       <div class="field"><label for="wz-b">Team 2</label><select id="wz-b" data-w="b">${opts(w.b)}</select></div></div>
       <div class="field"><label for="wz-nt">Create a new team</label><div class="row" style="flex-wrap:nowrap"><input id="wz-nt" data-w="nt" placeholder="Team name, e.g. Penrith Gold U13" value="${esc(w.nt)}"><button class="btn ghost" data-act="wz-newteam">Create</button></div></div></section>
     <section class="panel grid3"><h3 style="grid-column:1/-1;margin:0"><span>Match details</span></h3>
       <div class="field"><label for="wz-dt">Date</label><input id="wz-dt" type="date" data-w="dt" value="${esc(w.dt)}"></div>
       <div class="field"><label for="wz-gr">Ground</label><input id="wz-gr" data-w="gr" placeholder="e.g. Jamison Park" value="${esc(w.gr)}"></div>
-      <div class="field"><label for="wz-cn">Competition</label><input id="wz-cn" data-w="cn" placeholder="e.g. SMCA Winter" value="${esc(w.cn)}"></div>
+      <div class="field"><label for="wz-pn">Names on the public link</label><select id="wz-pn" data-w="pn"><option value="full" ${w.pn==='full'?'selected':''}>Full names</option><option value="first" ${w.pn==='first'?'selected':''}>First names only</option><option value="init" ${w.pn==='init'?'selected':''}>Initials only</option></select></div>
+      ${more?`<div class="field"><label for="wz-cn">Competition</label><input id="wz-cn" data-w="cn" placeholder="e.g. SMCA Winter" value="${esc(w.cn)}"></div>
       <div class="field"><label for="wz-rd">Round</label><input id="wz-rd" data-w="rd" placeholder="e.g. 3" value="${esc(w.rd)}"></div>
       <div class="field"><label for="wz-u1">Umpire 1</label><input id="wz-u1" data-w="u1" value="${esc(w.u1)}"></div>
-      <div class="field"><label for="wz-u2">Umpire 2</label><input id="wz-u2" data-w="u2" value="${esc(w.u2)}"></div>
-      <div class="field"><label for="wz-pn">Names on the public link</label><select id="wz-pn" data-w="pn"><option value="full" ${w.pn==='full'?'selected':''}>Full names</option><option value="first" ${w.pn==='first'?'selected':''}>First names only</option><option value="init" ${w.pn==='init'?'selected':''}>Initials only</option></select></div></section>
+      <div class="field"><label for="wz-u2">Umpire 2</label><input id="wz-u2" data-w="u2" value="${esc(w.u2)}"></div>`:''}
+      <div class="morerow"><button class="btn ghost small" data-act="wzmore" aria-expanded="${more}">${more?'Less':'More'} <span aria-hidden="true">${more?'▴':'▾'}</span></button></div></section>
     <section class="panel grid3"><h3 style="grid-column:1/-1;margin:0"><span>Rules</span></h3>
-      <div class="field"><label for="wz-cp">Competition rules</label><select id="wz-cp" data-w="cp"><option value="std" ${w.cp!=='smca'?'selected':''}>Standard</option><option value="smca" ${w.cp==='smca'?'selected':''}>SMCA 36-over winter</option></select></div>
+      <div class="field"><label for="wz-cp">Competition type</label><select id="wz-cp" data-w="cp">${[['od','One Day'],['t10','T10'],['t20','T20'],['2d','2 Day'],['smca','SMCA 36-over winter']].map(([v,l])=>`<option value="${v}" ${(w.cp==='std'?'od':w.cp)===v?'selected':''}>${l}</option>`).join('')}</select></div>
       <div class="field"><label for="wz-fmt">Over format</label><select id="wz-fmt" data-w="fmt">
         <option value="std" ${w.fmt==='std'?'selected':''}>6 legal balls</option>
         <option value="max8" ${w.fmt==='max8'?'selected':''}>6 legal, max 8 deliveries (Junior)</option>
         <option value="tot6" ${w.fmt==='tot6'?'selected':''}>6 deliveries incl. extras (Junior)</option></select></div>
-      ${w.cp!=='smca'&&w.fmt==='std'?`<div class="field"><label for="wz-ty">Match type</label><select id="wz-ty" data-w="ty"><option value="one" ${w.ty!=='two'?'selected':''}>One innings each</option><option value="two" ${w.ty==='two'?'selected':''}>Two innings each</option></select></div>`:''}
-      <div class="field"><label for="wz-overs">${w.ty==='two'?'Overs per innings (0 = no limit)':'Overs per side'}</label><input id="wz-overs" data-w="overs" type="number" min="0" max="120" value="${w.overs}"></div>
+      ${w.cp==='t10'||w.cp==='t20'?'':`<div class="field"><label for="wz-overs">${w.ty==='two'?'Overs per innings (0 = no limit)':'Overs per side'}</label><input id="wz-overs" data-w="overs" type="number" min="0" max="120" value="${w.overs}"></div>`}
       <div class="field"><label for="wz-mo">Max overs per bowler (0 = no limit)</label><input id="wz-mo" data-w="mo" type="number" min="0" max="50" value="${w.mo}"></div>
 
       ${w.fmt!=='std'||w.cp==='smca'?`<div class="field"><label for="wz-ra">Batters retire at</label><select id="wz-ra" data-w="ra">${[['0','No retirement rule'],['20','20 runs'],['25','25 runs'],['30','30 runs'],['35','35 runs'],['40','40 runs'],['50','50 runs']].map(([v,l])=>`<option value="${v}" ${w.ra===v?'selected':''}>${l}</option>`).join('')}</select></div>`:''}
@@ -1007,7 +1009,7 @@ function homeMain(){
       ${w.fmt!=='std'&&w.cp!=='smca'?`<div class="field"><label for="wz-pr">Pairs cricket (junior)</label><select id="wz-pr" data-w="pr"><option value="off" ${w.pr!=='on'?'selected':''}>Off</option><option value="on" ${w.pr==='on'?'selected':''}>On</option></select></div>`:''}
       ${w.ty==='two'&&w.fmt==='std'&&w.cp!=='smca'?`<div class="field"><label for="wz-fol">Follow-on lead</label><input id="wz-fol" data-w="fol" type="number" min="1" value="${w.fol}"></div>`:''}
       ${w.fmt!=='std'&&w.cp!=='smca'&&w.pr==='on'?`<div class="field"><label for="wz-pov">Overs per pair</label><input id="wz-pov" data-w="pov" type="number" min="1" value="${w.pov}"></div><div class="field"><label for="wz-ppen">Runs lost per wicket</label><input id="wz-ppen" data-w="ppen" type="number" min="0" value="${w.ppen}"></div>`:''}
-    </section>`;
+    </section></div>`;
   } else if(w.step===2){
     const ids=[w.a,w.b],id=ids[w.side],t=teamById(id),sel=wizSel(id);
     h+=`<div class="subtabs two" role="tablist">${ids.map((x,i)=>{const ok=wizSel(x).length>=7&&wizSel(x).length<=12&&w.cap[x]!=null&&w.wk[x]!=null;return `<button role="tab" data-act="wz-side" data-v="${i}" aria-selected="${w.side===i}">${esc(teamById(x).name)} ${ok?'✓':''}</button>`}).join('')}</div>
@@ -1882,6 +1884,7 @@ document.addEventListener('click',ev=>{
     case 'superover':m.inns.push({bat:m.inns[1].bat,bowl:m.inns[1].bowl,so:true,ev:[]});UI.open=null;render();toast('Super over');break;
     case 'startinn':{const o=UI.open;if(o.st===''||o.ns===''||o.bo===''){UI.err='Choose both openers and the opening bowler.';render();break}if(+o.st===+o.ns){UI.err='Striker and non-striker must be different players.';render();break}
       push({t:'start',st:+o.st,ns:+o.ns,bo:+o.bo});UI.open=null;break}
+    case 'wzmore':{const w=S.wiz||{};const cur=UI.wzMore==null?!!(w.cn||w.rd||w.u1||w.u2):UI.wzMore;UI.wzMore=!cur;render();break}
     case 'newmatch':S.wiz=blankWiz();UI.err='';S.tab='home';render();window.scrollTo(0,0);break;
     case 'su':S.setup[b.dataset.f]=b.dataset.f==='tw'?+v:v;render();break;
     case 'su-back':if(S.setup.step===1)S.setup=null;else S.setup.step--;UI.err='';render();break;
@@ -1936,7 +1939,8 @@ document.addEventListener('change',ev=>{const t=ev.target;
   if(t.dataset.w&&S.wiz){S.wiz[t.dataset.w]=t.value;
     if(t.dataset.w==='cp'&&t.value==='smca')Object.assign(S.wiz,{ty:'one',overs:'36',ra:'40',bm:'9',lms:'yes',rr:'yes',pr:'off'});
     if(t.dataset.w==='cp'&&t.value!=='smca')Object.assign(S.wiz,{bm:'0',lms:'no',rr:'no',ra:'0'});
-    if(t.dataset.w==='fmt'||t.dataset.w==='cp'){const W=S.wiz;if(W.fmt!=='std'||W.cp==='smca')W.ty='one';if(W.fmt==='std'||W.cp==='smca')W.pr='off';if(W.fmt==='std'&&W.cp!=='smca')W.ra='0'}
+    if(t.dataset.w==='cp'){const W=S.wiz,c=t.value;W.ty=c==='2d'?'two':'one';if(c==='t10')Object.assign(W,{overs:'10',mo:'2'});if(c==='t20')Object.assign(W,{overs:'20',mo:'4'});if(c==='od'&&['10','20','36','0'].includes(String(W.overs)))Object.assign(W,{overs:'50',mo:'10'});if(c==='2d')Object.assign(W,{overs:'0',mo:'0'})}
+    if(t.dataset.w==='fmt'||t.dataset.w==='cp'){const W=S.wiz;if((W.fmt!=='std'&&W.cp!=='2d')||W.cp==='smca')W.ty='one';if(W.fmt==='std'||W.cp==='smca')W.pr='off';if(W.fmt==='std'&&W.cp!=='smca')W.ra='0'}
     if(['a','b','ty','pr','cp','fmt'].includes(t.dataset.w))render();else save()}
   if(t.dataset.f&&S.setup){S.setup[t.dataset.f]=t.value;if(t.dataset.f==='td'||t.dataset.f==='fmt')render();else save()}
   if(t.dataset.open&&UI.open){UI.open[t.dataset.open]=t.value}});
