@@ -996,7 +996,7 @@ function homeMain(){
       <div class="field"><label for="wz-u2">Umpire 2</label><input id="wz-u2" data-w="u2" value="${esc(w.u2)}"></div>`:''}
       <div class="morerow"><button class="btn ghost small" data-act="wzmore" aria-expanded="${more}">${more?'Less':'More'} <span aria-hidden="true">${more?'▴':'▾'}</span></button></div></section>
     <section class="panel grid3"><h3 style="grid-column:1/-1;margin:0"><span>Rules</span></h3>
-      <div class="field"><label for="wz-cp">Competition type</label><select id="wz-cp" data-w="cp">${[['od','One Day'],['t10','T10'],['t20','T20'],['2d','2 Day'],['smca','SMCA 36-over winter']].map(([v,l])=>`<option value="${v}" ${(w.cp==='std'?'od':w.cp)===v?'selected':''}>${l}</option>`).join('')}</select></div>
+      <div class="field"><label for="wz-cp">Competition type</label><select id="wz-cp" data-w="cp">${[['od','One Day'],['t10','T10'],['t20','T20'],['2d','2 Day'],['smca','SMCA Winter Comp']].map(([v,l])=>`<option value="${v}" ${(w.cp==='std'?'od':w.cp)===v?'selected':''}>${l}</option>`).join('')}</select></div>
       <div class="field"><label for="wz-fmt">Over format</label><select id="wz-fmt" data-w="fmt">
         <option value="std" ${w.fmt==='std'?'selected':''}>6 legal balls</option>
         <option value="max8" ${w.fmt==='max8'?'selected':''}>6 legal, max 8 deliveries (Junior)</option>
@@ -1937,7 +1937,7 @@ document.addEventListener('change',ev=>{const t=ev.target;
   if(t.dataset.rv){UI.rv[t.dataset.rv]=t.value;return}
   if(t.dataset.themeSel){S.style=t.value;render();toast((THEMES.find(x=>x.k===t.value)||{}).n+' theme');return}
   if(t.dataset.w&&S.wiz){S.wiz[t.dataset.w]=t.value;
-    if(t.dataset.w==='cp'&&t.value==='smca')Object.assign(S.wiz,{ty:'one',overs:'36',ra:'40',bm:'9',lms:'yes',rr:'yes',pr:'off'});
+    if(t.dataset.w==='cp'&&t.value==='smca')Object.assign(S.wiz,{ty:'one',overs:'36',mo:'6',ra:'40',bm:'9',lms:'yes',rr:'yes',pr:'off'});
     if(t.dataset.w==='cp'&&t.value!=='smca')Object.assign(S.wiz,{bm:'0',lms:'no',rr:'no',ra:'0'});
     if(t.dataset.w==='cp'){const W=S.wiz,c=t.value;W.ty=c==='2d'?'two':'one';if(c==='t10')Object.assign(W,{overs:'10',mo:'2'});if(c==='t20')Object.assign(W,{overs:'20',mo:'4'});if(c==='od'&&['10','20','36','0'].includes(String(W.overs)))Object.assign(W,{overs:'50',mo:'10'});if(c==='2d')Object.assign(W,{overs:'0',mo:'0'})}
     if(t.dataset.w==='fmt'||t.dataset.w==='cp'){const W=S.wiz;if((W.fmt!=='std'&&W.cp!=='2d')||W.cp==='smca')W.ty='one';if(W.fmt==='std'||W.cp==='smca')W.pr='off';if(W.fmt==='std'&&W.cp!=='smca')W.ra='0'}
