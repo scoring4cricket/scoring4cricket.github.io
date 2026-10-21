@@ -693,6 +693,13 @@ body.gated nav.tabs{display:none}
 .cardimg{max-height:40vh;width:auto!important;max-width:100%!important}.sumtxt{max-height:96px!important}
 .histbar{padding:4px 6px 4px 12px!important;font-size:13.5px}.histbar .btn{padding:5px 10px;font-size:12.5px;min-height:30px}
 .biglogo{display:grid;justify-items:center;gap:18px;margin:14px 0 4px}.biglogo img{width:min(220px,56vw);height:auto;filter:drop-shadow(0 6px 14px rgba(0,0,0,.35))}.biglogo.tl img{width:min(200px,50vw,24vh)}.biglogo.sc img{width:min(300px,76vw,42vh)}
+.dash{display:grid;gap:10px;align-content:start}.btn.big{min-height:52px;font-size:17px}
+.dbtn{display:grid;grid-template-columns:1fr auto;grid-template-rows:auto auto;align-items:center;text-align:left;gap:0 10px;width:100%;padding:12px 14px;border-radius:var(--r);border:1px solid var(--line);background:var(--surface);color:var(--ink);font:inherit;cursor:pointer}
+.dbtn b{font-size:16px}.dbtn small{grid-row:2;color:var(--muted);font-size:12.5px}.dbtn .go{grid-row:1/3;grid-column:2;font-size:22px;color:var(--accent,#D4AF37)}
+.dgroup{display:grid;gap:0}.dgroup .dbtn{border-bottom-left-radius:0;border-bottom-right-radius:0}
+.rcard{display:grid;gap:4px;text-align:left;width:100%;padding:10px 14px 12px;border:1px solid var(--line);border-top:0;border-radius:0 0 var(--r) var(--r);background:var(--surface-2);color:var(--ink);font:inherit;cursor:pointer}
+.rc-row{display:flex;justify-content:space-between;gap:10px;font-weight:600}.rc-row small{color:var(--muted);font-weight:500}.rc-s{white-space:nowrap}.rc-t{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rc-res{color:var(--accent,#D4AF37);font-size:14px;margin-top:2px}.biglogo.dl img{width:min(200px,50vw,24vh)}
 .sharebtns{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}.sharebtns .btn{flex:1 1 120px}
 header.top{top:0!important;padding-top:env(safe-area-inset-top,0px);background:var(--bg)!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
 :root[data-style="classic"] header.top{background:#0B1E3F!important}
@@ -952,7 +959,16 @@ function blankWiz(){const d=new Date();return {dt:d.getFullYear()+'-'+String(d.g
 function teamById(id){return S.teams.find(t=>t.id===id)}
 function wizSel(id){const w=S.wiz;if(!w.sel[id]){const t=teamById(id);w.sel[id]=t?t.squad.slice(0,11).map((n,i)=>i):[]}return w.sel[id]}
 function xiNames(id){return wizSel(id).map(i=>teamById(id).squad[i])}
-function homeView(){if(S.hv==='teams')return teamsView();if(S.hv&&S.hv.startsWith('team:'))return teamEdit(S.hv.slice(5));if(S.hv==='past')return pastView();return homeNav()+homeMain()}
+function homeView(){if(S.hv==='teams')return teamsView();if(S.hv&&S.hv.startsWith('team:'))return teamEdit(S.hv.slice(5));if(S.hv==='past')return pastView();const m=S.match;if(!m.deleted&&!resultOf(m)){if(S.hv==='new')S.hv='';return homeNav()+homeMain()}if(S.hv==='new')return homeMain();return homeDash()}
+function lastDone(){if(!S.match.deleted&&resultOf(S.match))return {m:S.match,i:'cur'};const H=S.history||[];for(let i=H.length-1;i>=0;i--)if(resultOf(H[i]))return {m:H[i],i};return H.length?{m:H[H.length-1],i:H.length-1}:null}
+function doneCount(){return (S.history||[]).length+(!S.match.deleted&&resultOf(S.match)?1:0)}
+function resultCard(m,i){const sc=m.inns.map((inn,k)=>({inn,k})).filter(x=>x.inn.ev.length).map(({inn,k})=>{const s=stateOf(m,k);return `<div class="rc-row"><span class="rc-t">${esc(m.teams[inn.bat].name)}${inn.so?' (SO)':''}</span><span class="rc-s">${s.total}/${s.wk} <small>(${oversTxt(s,m)})</small></span></div>`}).join('');
+  return `<button class="rcard" data-act="${i==='cur'?'tab':'h-view'}" data-v="${i==='cur'?'card':i}"><span class="minihead">Most recent · ${esc(infoLine(m,true)||'')}</span>${sc}<b class="rc-res">${esc(resultOf(m)||'No result')}</b></button>`}
+function homeDash(){const L=lastDone(),n=doneCount();
+  return `<div class="dash"><button class="btn big" data-act="newmatch">+ Start a new match</button>
+    <button class="dbtn" data-act="hv" data-v="teams"><b>Squads and Teams</b><small>${S.teams.length} team${S.teams.length===1?'':'s'}</small><span class="go">›</span></button>
+    <div class="dgroup"><button class="dbtn" data-act="hv" data-v="past"><b>Completed Matches</b><small>${n} match${n===1?'':'es'}</small><span class="go">›</span></button>${L?resultCard(L.m,L.i):''}</div>
+    <div class="biglogo dl"><img src="icons/logo.png" alt="Scoring 4 Cricket" width="220" height="220"></div></div>`}
 function homeMain(){
   const m=S.match,res=resultOf(m),k=cur(),s=stateOf(m,k);
   if(!S.wiz)S.wiz=blankWiz();const w=S.wiz;
@@ -961,12 +977,12 @@ function homeMain(){
   let h=m.deleted||m.sample?'':`<section class="panel resume"><div style="min-width:0"><div class="minihead">${res?'Last match':'Match in progress'}</div>
     <b>${vs(m)}</b><div class="sub">${res?esc(res):esc(m.teams[s.inn.bat].name)+' '+s.total+'/'+s.wk+' · '+oversTxt(s,m)+' ov'}</div></div>
     <button class="btn small" data-act="tab" data-v="${res?'card':'score'}">${res?'Scorecard':'Continue scoring'}</button></section>
-`;h+=`<h2 class="home-h">Start a new match</h2>`;
+`;h=`<div class="row" style="justify-content:space-between"><h2 class="home-h" style="margin:0">Start a new match</h2><button class="btn ghost small" data-act="hv" data-v="">Back</button></div>`;
   if(!res){return h+`<section class="panel locked"><b>Locked while this match is in progress</b><div class="sub">End or finish it from Score → Actions.</div></section>`}
   h+=`<div class="steps">${steps.map((t,i)=>`<span class="${w.step>=i+1?'on':''}">${i+1} · ${t}</span>`).join('')}</div>`;
   h+='<div class="hbody">';
-  {const ids=S.teams.map(t=>t.id);if(!ids.includes(w.a))w.a=ids.find(x=>x!==w.b)||ids[0]||'';if(!ids.includes(w.b)||w.b===w.a)w.b=ids.find(x=>x!==w.a)||''}
-  const opts=(v,skip)=>S.teams.length?S.teams.filter(t=>t.id!==skip).map(t=>`<option value="${t.id}" ${t.id===v?'selected':''}>${esc(t.name)}</option>`).join('')||'<option value="">Create another team below</option>':'<option value="">Create a team below</option>';
+  {const ids=S.teams.map(t=>t.id);if(!ids.includes(w.a))w.a='';if(!ids.includes(w.b)||w.b===w.a)w.b=''}
+  const opts=(v,skip)=>`<option value="" ${v?'':'selected'} disabled>${S.teams.length?'Select a team':'Create a team below'}</option>`+S.teams.filter(t=>t.id!==skip).map(t=>`<option value="${t.id}" ${t.id===v?'selected':''}>${esc(t.name)}</option>`).join('');
   if(w.step===1){const more=UI.wzMore==null?!!(w.cn||w.rd||w.u1||w.u2):UI.wzMore;
     h+=`<div class="wzc"><section class="panel" style="display:grid;gap:8px">
       <div class="grid2"><div class="field"><label for="wz-a">Team 1</label><select id="wz-a" data-w="a">${opts(w.a)}</select></div>
@@ -1027,7 +1043,7 @@ function homeMain(){
 function wizAct(a,b,v){
   const w=S.wiz;UI.err='';
   if(a==='wz-newteam'){const n=w.nt.trim();if(!n){UI.err='Type a team name first.';return}
-    const id='t'+Date.now();S.teams.push({id,name:n,squad:[]});w.nt='';if(!teamById(w.a))w.a=id;else w.b=id;toast('Team created');return}
+    const id='t'+Date.now();S.teams.push({id,name:n,squad:[]});w.nt='';toast('Team created · select it above');return}
   if(a==='wz-side'){w.side=+v;return}
   if(a==='wz-pick'){const id=[w.a,w.b][w.side],sel=wizSel(id),i=+v,p=sel.indexOf(i);
     if(p<0&&sel.length>=12){UI.err='A playing team can have at most 12 players.';return}
@@ -1039,7 +1055,7 @@ function wizAct(a,b,v){
   if(a==='wz-set'){w[b.dataset.f]=b.dataset.f==='tw'?+v:v;return}
   if(a==='wz-back'){if(w.step===2&&w.side===1){w.side=0}else w.step--;return}
   if(a==='wz-next'){
-    if(w.step===1){if(!teamById(w.a)||!teamById(w.b)){UI.err='Create two teams first.';return}if(w.a===w.b){UI.err='Choose two different teams.';return}
+    if(w.step===1){if(!teamById(w.a)||!teamById(w.b)){UI.err=S.teams.length<2?'Create two teams first.':'Select both teams.';return}if(w.a===w.b){UI.err='Choose two different teams.';return}
       if(w.ty!=='two'&&!(+w.overs>=1)){UI.err='Overs per side must be at least 1.';return}
       if(w.ty!=='two'&&w.pr==='on'){if(!(+w.pov>=1)||(+w.overs)%(+w.pov)!==0){UI.err='Overs per side must divide evenly into pairs of '+w.pov+' overs.';return}}
       w.step=2;w.side=0;return}
@@ -1231,7 +1247,7 @@ function activityPanel(){if(S.match.deleted)return '';const m=S.match,rows=[];m.
 /* ---------- teams & squads, past matches, privacy ---------- */
 let RO=false;
 function badge(t,sz){sz=sz||34;return t&&t.logo?`<img class="tlogo" src="${t.logo}" alt="" style="width:${sz}px;height:${sz}px">`:`<span class="tlogo ini" style="width:${sz}px;height:${sz}px">${esc(t?ini(t.name):'')}</span>`}
-function homeNav(){const n=(S.history||[]).length;return `<div class="homenav"><button class="btn ghost small" data-act="hv" data-v="teams">Squads and Teams</button><button class="btn ghost small" data-act="hv" data-v="past">Past matches${n?' ('+n+')':''}</button></div>`}
+function homeNav(){const n=doneCount();return `<div class="homenav"><button class="btn ghost small" data-act="hv" data-v="teams">Squads and Teams</button><button class="btn ghost small" data-act="hv" data-v="past">Completed Matches${n?' ('+n+')':''}</button></div>`}
 function teamsView(){return `<div class="row" style="justify-content:space-between"><h2 class="home-h" style="margin:0">Squads and Teams</h2><button class="btn ghost small" data-act="hv" data-v="">Back</button></div>
   ${S.teams.length?'':'<p class="sub" style="margin:0">No teams yet. Create your first team below.</p>'}${S.teams.length?`<section class="panel tlist">`:'<section hidden>'}${S.teams.map(t=>`<button class="trow" data-act="hv" data-v="team:${t.id}">${badge(t)}<span class="tn2"><b>${esc(t.name)}</b><small>${t.squad.length} player${t.squad.length===1?'':'s'}</small></span><span class="go">Edit ›</span></button>`).join('')}</section>
   <section class="panel"><div class="field"><label for="nt2">New team</label><div class="row" style="flex-wrap:nowrap"><input id="nt2" data-tnew="1" placeholder="Team name" value="${esc(UI.tnew||'')}"><button class="btn" data-act="t-create">Create</button></div></div>${UI.err?`<p class="err">${esc(UI.err)}</p>`:''}</section>
@@ -1247,10 +1263,10 @@ function teamEdit(id){const t=teamById(id);if(!t){S.hv='teams';return teamsView(
       ${UI.rmP===t.id+':'+i?`<button class="btn small" data-act="t-rmok" data-v="${t.id}:${i}">Remove</button><button class="btn ghost small" data-act="t-rmno">Keep</button>`:`<button class="btn ghost small" data-act="t-rm" data-v="${t.id}:${i}" aria-label="Remove ${esc(n)}">✕</button>`}</div>`).join('')}
     <div class="row" style="flex-wrap:nowrap"><input data-pnew="${t.id}" placeholder="Add a player" value="${esc(UI.pnew||'')}"><button class="btn ghost" data-act="t-addp" data-v="${t.id}">Add</button></div></section>
   <section class="panel">${UI.rmT===t.id?`<div class="row" style="justify-content:space-between"><b>Delete ${esc(t.name)} and its squad?</b><div class="row"><button class="btn ghost small" data-act="t-delno">Keep</button><button class="btn small" data-act="t-delok" data-v="${t.id}">Delete team</button></div></div>`:`<button class="btn ghost small danger-t" data-act="t-del" data-v="${t.id}">Delete team</button>`}</section>`}
-function pastView(){const H=S.history||[];
-  return `<div class="row" style="justify-content:space-between"><h2 class="home-h" style="margin:0">Past matches</h2><button class="btn ghost small" data-act="hv" data-v="">Back</button></div>
-  <section class="panel" style="padding-block:4px">${H.length?H.map((m,i)=>({m,i})).reverse().map(({m,i})=>`<div class="req"><div style="min-width:0"><b>${vs(m)}</b><span class="sub">${esc(infoLine(m,true)||'')}${infoLine(m,true)?' · ':''}${esc(resultOf(m)||'No result')}</span></div>
-    <div class="row">${UI.rmH===i?`<button class="btn small" data-act="h-delok" data-v="${i}">Delete</button><button class="btn ghost small" data-act="h-delno">Keep</button>`:`<button class="btn small" data-act="h-view" data-v="${i}">Scorecard</button><button class="btn ghost small" data-act="h-del" data-v="${i}" aria-label="Delete match">✕</button>`}</div></div>`).join(''):'<p class="sub" style="margin:10px 0">Finished matches are kept here when you start a new one.</p>'}</section>`}
+function pastView(){const H=S.history||[],cm=!S.match.deleted&&resultOf(S.match)?S.match:null;
+  return `<div class="row" style="justify-content:space-between"><h2 class="home-h" style="margin:0">Completed Matches</h2><button class="btn ghost small" data-act="hv" data-v="">Back</button></div>
+  <section class="panel" style="padding-block:4px">${cm?`<div class="req"><div style="min-width:0"><b>${vs(cm)}</b><span class="sub">${esc(infoLine(cm,true)||'')}${infoLine(cm,true)?' · ':''}${esc(resultOf(cm))}</span></div><div class="row"><button class="btn small" data-act="tab" data-v="card">Scorecard</button></div></div>`:''}${H.length?H.map((m,i)=>({m,i})).reverse().map(({m,i})=>`<div class="req"><div style="min-width:0"><b>${vs(m)}</b><span class="sub">${esc(infoLine(m,true)||'')}${infoLine(m,true)?' · ':''}${esc(resultOf(m)||'No result')}</span></div>
+    <div class="row">${UI.rmH===i?`<button class="btn small" data-act="h-delok" data-v="${i}">Delete</button><button class="btn ghost small" data-act="h-delno">Keep</button>`:`<button class="btn small" data-act="h-view" data-v="${i}">Scorecard</button><button class="btn ghost small" data-act="h-del" data-v="${i}" aria-label="Delete match">✕</button>`}</div></div>`).join(''):(cm?'':'<p class="sub" style="margin:10px 0">Your finished matches will appear here.</p>')}</section>`}
 function infoLine(m,short){const f=m.info||{};const d=f.date?new Date(f.date+'T00:00').toLocaleDateString('en-AU',{weekday:short?undefined:'short',day:'numeric',month:'short',year:'numeric'}):'';
   return [d,f.ground,f.comp,f.round?'Round '+f.round:'',!short&&f.umps&&f.umps.length?'Umpires: '+f.umps.join(', '):''].filter(Boolean).join(' · ')}
 function maskName(n,mode){const w=String(n).trim().split(/\s+/);if(mode==='first')return w[0];if(mode==='init')return w.map(x=>x[0]).join('').toUpperCase();return n}
@@ -1300,7 +1316,8 @@ function render(){
   const scorer=S.role==='scorer';if(!VW){if(scorer&&S.tab==='admin')S.tab='mine';if(!scorer&&S.tab==='mine')S.tab='admin';}
   const W=document.getElementById('who');W.textContent=VW?'Live scoreboard':(who()+(CL&&CL.configured?(scorer?' · Scorer':' · Owner'):''));W.title=VW?'':'Your account';
   if(VW&&!CL.liveAt){document.getElementById('tabs').innerHTML='';document.getElementById('main').innerHTML=`<section class="panel gate"><div class="gate-logo"><img src="icons/logo.png" alt="Scoring 4 Cricket" width="200" height="200"></div><h2>Live scoreboard</h2><p class="sub">${esc(CL.liveErr||'Loading the match…')}</p></section>`;CL.paintStatus();return}
-  document.getElementById('tabs').innerHTML=(VW?[['live','Live'],['card','Scorecard']]:[['home','Home'],['score','Score'],['card','Scorecard'],scorer?['mine','More']:['admin','Admin']])
+  const LIVE_M=!S.match.deleted&&!resultOf(S.match);
+  document.getElementById('tabs').innerHTML=(VW?[['live','Live'],['card','Scorecard']]:LIVE_M?[['home','Home'],['score','Score'],['card','Scorecard'],scorer?['mine','More']:['admin','Admin']]:[['home','Home'],scorer?['mine','More']:['admin','Admin']])
     .map(([k,l])=>`<button data-act="tab" data-v="${k}" ${S.tab===k?'aria-current="page"':''}>${ICONS[k]||ICONS.admin}${l}</button>`).join('');
   const M=document.getElementById('main');
   const SEL=['.hbody','.flexscroll','.sheet','main'],keep=document.querySelector?SEL.map(q=>{const el=document.querySelector(q);return el?el.scrollTop:0}):[],wy=window.scrollY||0;
@@ -1925,7 +1942,7 @@ document.addEventListener('click',ev=>{
     case 'startinn':{const o=UI.open;if(o.st===''||o.ns===''||o.bo===''){UI.err='Choose both openers and the opening bowler.';render();break}if(+o.st===+o.ns){UI.err='Striker and non-striker must be different players.';render();break}
       push({t:'start',st:+o.st,ns:+o.ns,bo:+o.bo});UI.open=null;break}
     case 'wzmore':{const w=S.wiz||{};const cur=UI.wzMore==null?!!(w.cn||w.rd||w.u1||w.u2):UI.wzMore;UI.wzMore=!cur;render();break}
-    case 'newmatch':S.wiz=blankWiz();UI.err='';S.tab='home';render();window.scrollTo(0,0);break;
+    case 'newmatch':S.wiz=blankWiz();UI.err='';S.tab='home';S.hv='new';render();window.scrollTo(0,0);break;
     case 'su':S.setup[b.dataset.f]=b.dataset.f==='tw'?+v:v;render();break;
     case 'su-back':if(S.setup.step===1)S.setup=null;else S.setup.step--;UI.err='';render();break;
     case 'su-next':{const u=S.setup;UI.err='';
