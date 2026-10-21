@@ -682,7 +682,7 @@ body.fit:not(.sc) .col-info{display:flex;flex-direction:column;gap:8px;flex:none
 .paper .bk-row{background:#f3f3f3;color:#111}.paper .bk-ov{border-color:#bbb}.paper .minihead{color:#555}
 .paper footer{color:#777;font-size:11px;text-align:right}
 .acttabs{margin-bottom:2px}
-.markimg{width:40px;height:40px;border-radius:10px;flex:none;display:block}
+.markimg{width:44px;height:44px;flex:none;display:block;filter:drop-shadow(0 1px 2px rgba(0,0,0,.35))}
 .sync.st-sv i{background:#d4a017}.sync.st-off i{background:#c0392b}.sync[data-act]{cursor:pointer}
 .gate{max-width:440px;margin:24px auto;display:grid;gap:12px;text-align:center}
 .gate .field{text-align:left}.gate .row{justify-content:center}
@@ -690,6 +690,8 @@ body.fit:not(.sc) .col-info{display:flex;flex-direction:column;gap:8px;flex:none
 .gsi{display:flex;justify-content:center;min-height:44px}
 .gbtn{display:inline-flex;align-items:center;gap:12px;border:0;border-radius:999px;background:#fff;color:#1f1f1f;font:600 16px Figtree,system-ui,sans-serif;padding:12px 22px 12px 14px;min-height:48px;box-shadow:0 2px 8px rgba(0,0,0,.25);cursor:pointer}
 body.gated nav.tabs{display:none}
+.cardimg{max-height:40vh;width:auto!important;max-width:100%!important}.sumtxt{max-height:96px!important}
+.histbar{padding:4px 6px 4px 12px!important;font-size:13.5px}.histbar .btn{padding:5px 10px;font-size:12.5px;min-height:30px}
 .sharebtns{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}.sharebtns .btn{flex:1 1 120px}
 header.top{top:0!important;padding-top:env(safe-area-inset-top,0px);background:var(--bg)!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
 :root[data-style="classic"] header.top{background:#0B1E3F!important}
@@ -708,7 +710,7 @@ input[type=date]::-webkit-date-and-time-value{text-align:left}
 <body>
 
 <header class="top"><div class="wrap">
-  <div class="brand"><img class="markimg" src="icons/mark-96.png" alt="" width="40" height="40"><div><b>Scoring 4 Cricket</b><button id="who" class="who" data-act="role"></button></div></div>
+  <div class="brand"><img class="markimg" src="icons/badge-192.png" alt="" width="44" height="44"><div><b>Scoring 4 Cricket</b><button id="who" class="who" data-act="role"></button></div></div>
   <span class="sync" id="syncchip"><i></i>Saved on this device</span>
 </div></header>
 <main class="wrap" id="main"></main>
@@ -1174,11 +1176,12 @@ function summaryText(m){const L=[vs(m).replace(/&amp;/g,'&').replace(/&#39;/g,"'
   const bw=Object.values(s.W).sort((a,b)=>b.w-a.w||a.r-b.r).slice(0,2).map(w=>Q[w.id]+' '+w.w+'/'+w.r);if(bw.length)L.push('  '+bw.join(', '))});
   const r=resultOf(m);if(r){L.push('');L.push(r)}const p=potm(m)[0];if(r&&p){const pk=m.potm?potm(m).find(e=>e.key===m.potm)||p:p;L.push('Player of the match: '+m.teams[pk.t].players[pk.i])}
   L.push('');L.push('Scored with Scoring 4 Cricket');return L.join('\n')}
+function curM(){return (S.tab==='card'||S.tab==='report')&&S.viewHist!=null&&S.history&&S.history[S.viewHist]?S.history[S.viewHist]:S.match}
 function fitText(c,t,w){t=String(t);if(c.measureText(t).width<=w)return t;while(t.length>1&&c.measureText(t+'…').width>w)t=t.slice(0,-1);return t.trimEnd()+'…'}
 let LOGO_IMG=null;function logoImg(cb){if(LOGO_IMG&&LOGO_IMG.complete&&LOGO_IMG.naturalWidth)return cb(LOGO_IMG);const i=new Image();i.onload=()=>{LOGO_IMG=i;cb(i)};i.onerror=()=>cb(null);i.src='icons/logo.png'}
 function drawCard(){const cv=document.getElementById('cardcv'),im=document.getElementById('cardimg');if(!cv||!cv.getContext||!im)return;logoImg(L=>paintCard(cv,im,L))}
 function paintCard(cv,im,L){
-  const m=maskMatch(S.match),c=cv.getContext('2d'),W=cv.width=1080,H=cv.height=1080,cs=getComputedStyle(document.documentElement);
+  const m=maskMatch(curM()),c=cv.getContext('2d'),W=cv.width=1080,H=cv.height=1080,cs=getComputedStyle(document.documentElement);
   const ta=cs.getPropertyValue('--ta').trim()||'#b08a22',tb=cs.getPropertyValue('--tb').trim()||'#4a78b0',fd=(cs.getPropertyValue('--f-num')||'').trim()||'Impact',GOLD='#D4AF37';
   const g=c.createLinearGradient(0,0,0,H);g.addColorStop(0,'#14336e');g.addColorStop(.55,'#0B1E3F');g.addColorStop(1,'#060f22');c.fillStyle=g;c.fillRect(0,0,W,H);
   c.strokeStyle=GOLD;c.lineWidth=6;c.strokeRect(30,30,W-60,H-60);c.lineWidth=1.5;c.globalAlpha=.5;c.strokeRect(46,46,W-92,H-92);c.globalAlpha=1;
@@ -1205,10 +1208,10 @@ async function shareBlob(blob,name,title){
   let f=null;try{f=new File([blob],name,{type:blob.type})}catch(e){}
   try{if(f&&navigator.canShare&&navigator.canShare({files:[f]})){await navigator.share({files:[f],title});return}}catch(e){if(e&&e.name==='AbortError')return}
   const u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),4000);toast('Saved to your downloads')}
-function shareCardImage(){const cv=document.getElementById('cardcv');if(!cv)return;cv.toBlob(b=>b&&shareBlob(b,cardName(S.match,'png'),'Scorecard'),'image/png')}
+function shareCardImage(){const cv=document.getElementById('cardcv');if(!cv)return;cv.toBlob(b=>b&&shareBlob(b,cardName(curM(),'png'),'Scorecard'),'image/png')}
 function loadJsPdf(){return new Promise((ok,no)=>{if(window.jspdf)return ok(window.jspdf);const sc=document.createElement('script');sc.src='lib/jspdf.umd.min.js';sc.onload=()=>ok(window.jspdf);sc.onerror=no;document.head.appendChild(sc)})}
 async function sharePdf(){let lib;try{lib=await loadJsPdf()}catch(e){toast('Could not load the PDF maker. Check your connection.');return}
-  logoImg(()=>{try{shareBlob(buildPdf(lib,maskMatch(S.match)),cardName(S.match,'pdf'),'Scorecard')}catch(e){toast('Could not make the PDF')}})}
+  logoImg(()=>{try{shareBlob(buildPdf(lib,maskMatch(curM())),cardName(curM(),'pdf'),'Scorecard')}catch(e){toast('Could not make the PDF')}})}
 function buildPdf(lib,m){const doc=new lib.jsPDF({unit:'pt',format:'a4'}),PW=595,PH=842,M=40;let y=M;
   const plain=t=>String(t).replace(/&amp;/g,'&').replace(/&#39;/g,"'").replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/[^\x20-\x7E -ÿ]/g,'');
   const need=h=>{if(y+h>PH-M-14){doc.addPage();y=M+10}};
@@ -1332,7 +1335,7 @@ function render(){
   const SEL=['.hbody','.flexscroll','.sheet','main'],keep=document.querySelector?SEL.map(q=>{const el=document.querySelector(q);return el?el.scrollTop:0}):[],wy=window.scrollY||0;
   const same=render.tab===S.tab&&render.sheet===(UI.sheet&&UI.sheet.type);
   S.setup=null;if(prefs().outdoor)document.documentElement.setAttribute('data-outdoor','1');else document.documentElement.removeAttribute('data-outdoor');document.body.classList.toggle('fit',S.tab==='score'||S.tab==='home');document.body.classList.toggle('sc',S.tab==='score');
-  const realM=S.match;if(S.tab!=='card')S.viewHist=null;if(S.tab==='card'&&S.viewHist!=null&&S.history&&S.history[S.viewHist]){S.match=S.history[S.viewHist];RO=true}
+  const realM=S.match;if(S.tab!=='card'&&S.tab!=='report')S.viewHist=null;if((S.tab==='card'||S.tab==='report')&&S.viewHist!=null&&S.history&&S.history[S.viewHist]){S.match=S.history[S.viewHist];RO=true}
   if(VW)RO=true;
   if(S.tab==='card'&&S.match.deleted&&!RO){M.innerHTML=noMatch()}else
   if(S.tab==='score'&&!UI.sheet&&!S.match.deleted){const st_=stateOf(S.match,cur());if(st_.need==='bowl'&&st_.overs.length)UI.sheet={type:'overend'}}
@@ -1706,7 +1709,7 @@ function sheetView(){
       <div class="row end"><button class="btn ghost" data-act="hist">Back</button><button class="btn" data-act="hist-ok" data-v="${ask}">Undo ${ev.length-ask}</button></div>`}
     else{const idx=ev.map((e,i)=>i).filter(i=>i>0).slice(-10).reverse();
       h=`<h2>Undo history</h2><div class="alist">${idx.map(i=>`<button class="aopt hrow" data-act="hist-ask" data-v="${i}"><b>${esc(evText(m,k,ev[i],i,s))}</b><small>${ev[i].ts?new Date(ev[i].ts).toLocaleTimeString('en-AU',{hour:'numeric',minute:'2-digit'})+' · '+esc(ev[i].by||''):'Earlier'} · Undo to here</small></button>`).join('')||'<p class="sub">Nothing to undo yet.</p>'}</div>`}}
-  else if(t==='sharecard'){const txt=summaryText(maskMatch(S.match));
+  else if(t==='sharecard'){const txt=summaryText(maskMatch(curM()));
     h=`<h2>Share scorecard</h2><img id="cardimg" class="cardimg" alt="Scorecard image"><canvas id="cardcv" hidden></canvas>
       <div class="sharebtns"><button class="btn" data-act="shareimg">Share image</button><button class="btn" data-act="sharepdf">Share PDF</button><button class="btn ghost" data-act="copytxt">Copy text</button></div>
       <pre class="sumtxt" id="sumtxt">${esc(txt)}</pre>`}
@@ -1829,7 +1832,7 @@ document.addEventListener('click',ev=>{
     case 'sharecard':UI.sheet={type:'sharecard'};render();break;
     case 'shareimg':shareCardImage();break;
     case 'sharepdf':sharePdf();break;
-    case 'copytxt':{const t=summaryText(maskMatch(m));if(navigator.clipboard)navigator.clipboard.writeText(t).then(()=>toast('Copied'),()=>{});else toast('Select the text to copy');break}
+    case 'copytxt':{const t=summaryText(maskMatch(curM()));if(navigator.clipboard)navigator.clipboard.writeText(t).then(()=>toast('Copied'),()=>{});else toast('Select the text to copy');break}
     case 'pref':{const p=prefs();if(v.startsWith('a-'))p.alerts[v.slice(2)]=!p.alerts[v.slice(2)];else p[v]=!p[v];render();break}
     case 'chk':UI.chk=UI.chk===v?null:v;render();break;
     case 'endover':{if(UI.nbowl===''||UI.nbowl==null){UI.err='Choose the next bowler.';render();break}
