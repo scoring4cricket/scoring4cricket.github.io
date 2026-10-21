@@ -692,7 +692,7 @@ body.fit:not(.sc) .col-info{display:flex;flex-direction:column;gap:8px;flex:none
 body.gated nav.tabs{display:none}
 .cardimg{max-height:40vh;width:auto!important;max-width:100%!important}.sumtxt{max-height:96px!important}
 .histbar{padding:4px 6px 4px 12px!important;font-size:13.5px}.histbar .btn{padding:5px 10px;font-size:12.5px;min-height:30px}
-.biglogo{display:grid;justify-items:center;gap:18px;margin:18px 0 8px}.biglogo img{width:min(220px,56vw);height:auto;filter:drop-shadow(0 6px 14px rgba(0,0,0,.35))}
+.biglogo{display:grid;justify-items:center;gap:18px;margin:14px 0 4px}.biglogo img{width:min(220px,56vw);height:auto;filter:drop-shadow(0 6px 14px rgba(0,0,0,.35))}.biglogo.tl img{width:min(200px,50vw,24vh)}.biglogo.sc img{width:min(300px,76vw,42vh)}
 .sharebtns{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}.sharebtns .btn{flex:1 1 120px}
 header.top{top:0!important;padding-top:env(safe-area-inset-top,0px);background:var(--bg)!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
 :root[data-style="classic"] header.top{background:#0B1E3F!important}
@@ -701,6 +701,8 @@ header.top .brand b{color:var(--ink);opacity:1;font-size:17px;line-height:1.2}
 header.top .who{display:none}
 .sync b.ini{font-weight:800;letter-spacing:.04em;color:var(--ink)}
 html,body{overflow-x:hidden;max-width:100%}
+body{margin:0}
+*,*::before,*::after{box-sizing:border-box}
 .field{min-width:0}
 input[type=date]{-webkit-appearance:none;appearance:none;min-width:0;max-width:100%;display:block;text-align:left;min-height:38px}
 input[type=date]::-webkit-date-and-time-value{text-align:left}
@@ -1229,11 +1231,11 @@ function activityPanel(){if(S.match.deleted)return '';const m=S.match,rows=[];m.
 /* ---------- teams & squads, past matches, privacy ---------- */
 let RO=false;
 function badge(t,sz){sz=sz||34;return t&&t.logo?`<img class="tlogo" src="${t.logo}" alt="" style="width:${sz}px;height:${sz}px">`:`<span class="tlogo ini" style="width:${sz}px;height:${sz}px">${esc(t?ini(t.name):'')}</span>`}
-function homeNav(){const n=(S.history||[]).length;return `<div class="homenav"><button class="btn ghost small" data-act="hv" data-v="teams">Squads and teams</button><button class="btn ghost small" data-act="hv" data-v="past">Past matches${n?' ('+n+')':''}</button></div>`}
-function teamsView(){return `<div class="row" style="justify-content:space-between"><h2 class="home-h" style="margin:0">Squads and teams</h2><button class="btn ghost small" data-act="hv" data-v="">Back</button></div>
+function homeNav(){const n=(S.history||[]).length;return `<div class="homenav"><button class="btn ghost small" data-act="hv" data-v="teams">Squads and Teams</button><button class="btn ghost small" data-act="hv" data-v="past">Past matches${n?' ('+n+')':''}</button></div>`}
+function teamsView(){return `<div class="row" style="justify-content:space-between"><h2 class="home-h" style="margin:0">Squads and Teams</h2><button class="btn ghost small" data-act="hv" data-v="">Back</button></div>
   ${S.teams.length?'':'<p class="sub" style="margin:0">No teams yet. Create your first team below.</p>'}${S.teams.length?`<section class="panel tlist">`:'<section hidden>'}${S.teams.map(t=>`<button class="trow" data-act="hv" data-v="team:${t.id}">${badge(t)}<span class="tn2"><b>${esc(t.name)}</b><small>${t.squad.length} player${t.squad.length===1?'':'s'}</small></span><span class="go">Edit ›</span></button>`).join('')}</section>
   <section class="panel"><div class="field"><label for="nt2">New team</label><div class="row" style="flex-wrap:nowrap"><input id="nt2" data-tnew="1" placeholder="Team name" value="${esc(UI.tnew||'')}"><button class="btn" data-act="t-create">Create</button></div></div>${UI.err?`<p class="err">${esc(UI.err)}</p>`:''}</section>
-  <div class="biglogo"><img src="icons/logo.png" alt="Scoring 4 Cricket" width="220" height="220"></div>`}
+  ${S.teams.length<=3?'<div class="biglogo tl"><img src="icons/logo.png" alt="Scoring 4 Cricket" width="220" height="220"></div>':''}`}
 function teamEdit(id){const t=teamById(id);if(!t){S.hv='teams';return teamsView()}t.hands=t.hands||{};
   return `<div class="row" style="justify-content:space-between"><h2 class="home-h" style="margin:0">Edit team</h2><button class="btn ghost small" data-act="hv" data-v="teams">Done</button></div>
   <section class="panel" style="display:grid;gap:12px"><div class="row" style="flex-wrap:nowrap;align-items:center">${badge(t,54)}
@@ -1253,7 +1255,7 @@ function infoLine(m,short){const f=m.info||{};const d=f.date?new Date(f.date+'T0
   return [d,f.ground,f.comp,f.round?'Round '+f.round:'',!short&&f.umps&&f.umps.length?'Umpires: '+f.umps.join(', '):''].filter(Boolean).join(' · ')}
 function maskName(n,mode){const w=String(n).trim().split(/\s+/);if(mode==='first')return w[0];if(mode==='init')return w.map(x=>x[0]).join('').toUpperCase();return n}
 function maskMatch(m){if(!m.pubNames||m.pubNames==='full')return m;const c=JSON.parse(JSON.stringify(m));c.teams.forEach(t=>t.players=t.players.map(n=>maskName(n,m.pubNames)));return c}
-function noMatch(){return `<section class="callout"><h2>No match in progress</h2><p>Start one from Home.</p></section><div class="biglogo"><img src="icons/logo.png" alt="Scoring 4 Cricket" width="240" height="240"><button class="btn" data-act="tab" data-v="home">Go to Home</button></div>`}
+function noMatch(){return `<section class="callout"><h2>No match in progress</h2><p>Start one from Home.</p></section><div class="biglogo sc"><img src="icons/logo.png" alt="Scoring 4 Cricket" width="300" height="300"><button class="btn" data-act="tab" data-v="home">Go to Home</button></div>`}
 function fitLogo(file,cb){const r=new FileReader();r.onload=()=>{const im=new Image();im.onload=()=>{const c=document.createElement('canvas'),s=128;c.width=c.height=s;const x=c.getContext('2d'),k=Math.max(s/im.width,s/im.height),w=im.width*k,h=im.height*k;x.drawImage(im,(s-w)/2,(s-h)/2,w,h);cb(c.toDataURL('image/png'))};im.src=r.result};r.readAsDataURL(file)}
 function renameSquad(oldTeam,newTeam,oldN,newN){const t=S.teams.find(x=>x.name===oldTeam);if(!t)return;if(newTeam)t.name=newTeam;if(oldN!=null){const i=t.squad.indexOf(oldN);if(i>=0){t.squad[i]=newN;if(t.hands&&t.hands[oldN]){t.hands[newN]=t.hands[oldN];delete t.hands[oldN]}}}}
 
