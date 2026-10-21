@@ -1048,7 +1048,7 @@ function homeMain(){
 function wizAct(a,b,v){
   const w=S.wiz;UI.err='';
   if(a==='wz-newteam'){const n=w.nt.trim();if(!n){UI.err='Type a team name first.';return}
-    const id='t'+Date.now();S.teams.push({id,name:n,squad:[]});w.nt='';toast('Team created · select it above');return}
+    const id='t'+Date.now()+Math.random().toString(36).slice(2,6);S.teams.push({id,name:n,squad:[]});w.nt='';toast('Team created · select it above');return}
   if(a==='wz-side'){w.side=+v;return}
   if(a==='wz-pick'){const id=[w.a,w.b][w.side],sel=wizSel(id),i=+v,p=sel.indexOf(i);
     if(p<0&&sel.length>=12){UI.err='A playing team can have at most 12 players.';return}
@@ -1254,10 +1254,15 @@ let RO=false;
 function badge(t,sz){sz=sz||34;return t&&t.logo?`<img class="tlogo" src="${t.logo}" alt="" style="width:${sz}px;height:${sz}px">`:`<span class="tlogo ini" style="width:${sz}px;height:${sz}px">${esc(t?ini(t.name):'')}</span>`}
 function homeNav(){const n=doneCount();return `<div class="homenav"><button class="btn ghost small" data-act="hv" data-v="teams">Squads and Teams</button><button class="btn ghost small" data-act="hv" data-v="past">Completed Matches${n?' ('+n+')':''}</button></div>`}
 function teamsView(){return `<div class="row" style="justify-content:space-between"><h2 class="home-h" style="margin:0">Squads and Teams</h2><button class="btn ghost small" data-act="hv" data-v="">Back</button></div>
-  ${S.teams.length?'':'<p class="sub" style="margin:0">No teams yet. Create your first team below.</p>'}${S.teams.length?`<section class="panel tlist">`:'<section hidden>'}${S.teams.map(t=>`<button class="trow" data-act="hv" data-v="team:${t.id}">${badge(t)}<span class="tn2"><b>${esc(t.name)}</b><small>${t.squad.length} player${t.squad.length===1?'':'s'}</small></span><span class="go">Edit ›</span></button>`).join('')}</section>
+  ${S.teams.length?'':'<p class="sub" style="margin:0">No teams yet. Create your first team below.</p>'}${S.teams.length?`<section class="panel tlist">`:'<section hidden>'}${S.teams.map(t=>`<button class="trow" data-act="hv" data-v="team:${t.id}">${badge(t)}<span class="tn2"><b>${esc(t.name)}</b><small>${t.squad.length} player${t.squad.length===1?'':'s'}${teamBy(t)}</small></span><span class="go">${canEditT(t)?'Edit':'View'} ›</span></button>`).join('')}</section>
   <section class="panel"><div class="field"><label for="nt2">New team</label><div class="row" style="flex-wrap:nowrap"><input id="nt2" data-tnew="1" placeholder="Team name" value="${esc(UI.tnew||'')}"><button class="btn" data-act="t-create">Create</button></div></div>${UI.err?`<p class="err">${esc(UI.err)}</p>`:''}</section>
   ${S.teams.length<=3?'<div class="biglogo tl"><img src="icons/logo.png" alt="Scoring 4 Cricket" width="220" height="220"></div>':''}`}
-function teamEdit(id){const t=teamById(id);if(!t){S.hv='teams';return teamsView()}t.hands=t.hands||{};
+function canEditT(t){return !window.CLOUD||CLOUD.canEdit(t)}
+function teamBy(t){const me=window.CLOUD&&CLOUD.user&&CLOUD.user.email;return t.owner&&t.owner!==me?' · by '+esc(t.ownerName||t.owner.split('@')[0]):''}
+function teamView(t){return `<div class="row" style="justify-content:space-between"><h2 class="home-h" style="margin:0">${esc(t.name)}</h2><button class="btn ghost small" data-act="hv" data-v="teams">Back</button></div>
+  <section class="panel" style="display:grid;gap:8px"><div class="row" style="flex-wrap:nowrap;align-items:center">${badge(t,54)}<div><b>${esc(t.name)}</b><div class="sub">Created by ${esc(t.ownerName||(t.owner||'').split('@')[0]||'another scorer')}. Only its creator or the app owner can change it, but you can pick it for your matches.</div></div></div></section>
+  <section class="panel" style="display:grid;gap:4px"><h3><span>Squad</span><span>${t.squad.length} players</span></h3>${t.squad.map((n,i)=>`<div class="lu-row"><span class="lu-n">${i+1}</span><span class="lu-name">${esc(n)}${t.hands&&t.hands[n]==='L'?' <small class="sub">LHB</small>':''}</span></div>`).join('')||'<p class="sub">No players yet.</p>'}</section>`}
+function teamEdit(id){const t=teamById(id);if(!t){S.hv='teams';return teamsView()}if(!canEditT(t))return teamView(t);t.hands=t.hands||{};
   return `<div class="row" style="justify-content:space-between"><h2 class="home-h" style="margin:0">Edit team</h2><button class="btn ghost small" data-act="hv" data-v="teams">Done</button></div>
   <section class="panel" style="display:grid;gap:12px"><div class="row" style="flex-wrap:nowrap;align-items:center">${badge(t,54)}
     <div class="field" style="flex:1;min-width:0"><label for="te-name">Team name</label><input id="te-name" data-te="${t.id}" value="${esc(t.name)}"></div></div>
@@ -1844,8 +1849,8 @@ document.addEventListener('click',ev=>{
     case 'del-ask':UI.delAsk=true;render();break;
     case 'del-no':UI.delAsk=false;render();break;
     case 'del-ok':m.deleted=true;m.end={why:'Deleted',text:'Match deleted'};UI.delAsk=false;UI.sheet=null;S.tab='home';S.hv='';render();toast('Match deleted');break;
-    case 'hv':S.hv=v||'';UI.err='';UI.rmP=null;UI.rmT=null;UI.rmH=null;render();window.scrollTo(0,0);break;
-    case 't-create':{const n=(UI.tnew||'').trim();if(!n){UI.err='Type a team name first.';render();break}S.teams.push({id:'t'+Date.now(),name:n,squad:[],hands:{}});UI.tnew='';UI.err='';render();toast('Team created');break}
+    case 'hv':if(window.CLOUD&&(v==='teams'||(v||'').startsWith('team:')))CLOUD.pullTeams();S.hv=v||'';UI.err='';UI.rmP=null;UI.rmT=null;UI.rmH=null;render();window.scrollTo(0,0);break;
+    case 't-create':{const n=(UI.tnew||'').trim();if(!n){UI.err='Type a team name first.';render();break}S.teams.push({id:'t'+Date.now()+Math.random().toString(36).slice(2,6),name:n,squad:[],hands:{}});UI.tnew='';UI.err='';render();toast('Team created');break}
     case 't-addp':{const t=teamById(v),n=(UI.pnew||'').trim();if(!t||!n)break;t.squad.push(n);UI.pnew='';render();break}
     case 't-hand':{const [id,i]=v.split(':'),t=teamById(id),n=t.squad[+i];t.hands=t.hands||{};t.hands[n]=t.hands[n]==='L'?'R':'L';render();break}
     case 't-rm':UI.rmP=v;render();break;
@@ -1854,7 +1859,7 @@ document.addEventListener('click',ev=>{
     case 't-nologo':{const t=teamById(v);if(t)t.logo=null;render();break}
     case 't-del':UI.rmT=v;render();break;
     case 't-delno':UI.rmT=null;render();break;
-    case 't-delok':{S.teams=S.teams.filter(t=>t.id!==v);if(S.wiz){if(S.wiz.a===v)S.wiz.a=S.teams[0]&&S.teams[0].id;if(S.wiz.b===v)S.wiz.b=S.teams[1]&&S.teams[1].id}UI.rmT=null;S.hv='teams';render();toast('Team deleted');break}
+    case 't-delok':{if(!canEditT(teamById(v)))break;S.teams=S.teams.filter(t=>t.id!==v);if(S.wiz){if(S.wiz.a===v)S.wiz.a=S.teams[0]&&S.teams[0].id;if(S.wiz.b===v)S.wiz.b=S.teams[1]&&S.teams[1].id}UI.rmT=null;S.hv='teams';render();toast('Team deleted');break}
     case 'h-view':S.viewHist=+v;S.tab='card';S.cardTeam=null;S.cardInn=null;render();window.scrollTo(0,0);break;
     case 'h-back':S.viewHist=null;S.tab='home';S.hv='past';render();break;
     case 'h-del':UI.rmH=+v;render();break;
@@ -1947,7 +1952,7 @@ document.addEventListener('click',ev=>{
     case 'startinn':{const o=UI.open;if(o.st===''||o.ns===''||o.bo===''){UI.err='Choose both openers and the opening bowler.';render();break}if(+o.st===+o.ns){UI.err='Striker and non-striker must be different players.';render();break}
       push({t:'start',st:+o.st,ns:+o.ns,bo:+o.bo});UI.open=null;break}
     case 'wzmore':{const w=S.wiz||{};const cur=UI.wzMore==null?!!(w.cn||w.rd||w.u1||w.u2):UI.wzMore;UI.wzMore=!cur;render();break}
-    case 'newmatch':S.wiz=blankWiz();UI.err='';S.tab='home';S.hv='new';render();window.scrollTo(0,0);break;
+    case 'newmatch':if(window.CLOUD)CLOUD.pullTeams();S.wiz=blankWiz();UI.err='';S.tab='home';S.hv='new';render();window.scrollTo(0,0);break;
     case 'su':S.setup[b.dataset.f]=b.dataset.f==='tw'?+v:v;render();break;
     case 'su-back':if(S.setup.step===1)S.setup=null;else S.setup.step--;UI.err='';render();break;
     case 'su-next':{const u=S.setup;UI.err='';

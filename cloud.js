@@ -2,7 +2,7 @@
    Loaded before the main app script. The app calls CLOUD.* hooks. */
 (function () {
   const CFG = Object.assign({ API_URL: '', CLIENT_ID: '', BASE: location.origin + location.pathname }, window.S4C_CONFIG || {});
-  const TOK = 's4c-token', SYNC = 's4c-sync', WHO = 's4c-user';
+  const TOK = 's4c-token', SYNC = 's4c-sync', WHO = 's4c-user', SYNCT = 's4c-sync-teams';
   const ls = {
     get(k) { try { return JSON.parse(localStorage.getItem(k)); } catch (e) { return null; } },
     set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
@@ -23,10 +23,12 @@
     busy: false, err: '',
     ready: false,
     sent: ls.get(SYNC) || {},
-    dirty: {}
+    sentT: ls.get(SYNCT) || {},
+    dirty: {}, dirtyT: {}, delT: {}, teamsAt: 0
   };
 
   /* ---------- helpers ---------- */
+  C.canEdit = t => !C.configured || !t || !t.owner || C.role === 'owner' || (C.user && t.owner === C.user.email);
   C.ok = () => !C.configured || C.role === 'owner' || C.role === 'scorer';
   C.name = () => (C.user && C.user.name) || (C.configured ? '' : 'Local mode');
   C.uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
@@ -77,7 +79,7 @@
         ls.set(WHO, { user: C.user, role: C.role });
         if (C.status === 'signin') C.status = 'idle';
         if ((C.role === 'owner' || C.role === 'scorer') && (fresh || was !== C.role)) pull();
-        if (C.role === 'owner' || C.role === 'scorer') flush();
+        if (C.role === 'owner' || C.role === 'scorer') { flush(); C.pullTeams(true); }
       } else C.err = 'Sign-in failed (' + (j.error || 'unknown') + ').';
     } catch (e) {
       if (e.message !== 'auth') { C.err = navigator.onLine ? 'Could not reach the S4C server.' : 'You are offline.'; C.status = 'offline'; }
@@ -130,26 +132,40 @@
       const d = JSON.stringify(m), q = quick(d);
       if (C.sent[m.id] !== q) C.dirty[m.id] = m;
     });
-    const t = JSON.stringify(S.teams || []), tq = quick(t);
-    if (S.teams && S.teams.length && C.sent._teams !== tq) C.dirty._teams = true;
-    if (Object.keys(C.dirty).length) { clearTimeout(timer); timer = setTimeout(flush, 1500); }
+    if (C.user) {
+      const ids = new Set();
+      (S.teams || []).forEach(t => {
+        ids.add(t.id);
+        if (!t.owner) { t.owner = C.user.email; t.ownerName = C.user.name; }
+        if (!C.canEdit(t)) return;
+        const q = quick(JSON.stringify(t));
+        if (C.sentT[t.id] !== q) C.dirtyT[t.id] = t;
+      });
+      Object.keys(C.sentT).forEach(id => { if (!ids.has(id) && !C.delT[id]) C.delT[id] = true; });
+    }
+    if (pending()) { clearTimeout(timer); timer = setTimeout(flush, 1500); }
   };
 
+  const pending = () => Object.keys(C.dirty).length + Object.keys(C.dirtyT).length + Object.keys(C.delT).length;
   let flushing = false;
   async function flush() {
     if (flushing || !C.token || !C.ok() || !C.configured) return;
     const ids = Object.keys(C.dirty);
-    if (!ids.length) return;
+    if (!pending()) return;
     if (!navigator.onLine) { C.status = 'offline'; paintStatus(); return; }
     flushing = true; C.status = 'saving'; paintStatus();
     try {
+      for (const id of Object.keys(C.dirtyT)) {
+        const t = C.dirtyT[id], d = JSON.stringify(t);
+        const j = await api('saveTeam', { id, data: d });
+        if (j.ok || j.error === 'not-yours') { C.sentT[id] = quick(d); if (C.dirtyT[id] === t) delete C.dirtyT[id]; }
+      }
+      for (const id of Object.keys(C.delT)) {
+        const j = await api('deleteTeam', { id });
+        if (j.ok || j.error === 'not-yours') { delete C.sentT[id]; delete C.delT[id]; }
+      }
+      ls.set(SYNCT, C.sentT);
       for (const id of ids) {
-        if (id === '_teams') {
-          const d = JSON.stringify(S.teams || []);
-          const j = await api('saveTeams', { data: d });
-          if (j.ok) { C.sent._teams = quick(d); delete C.dirty._teams; }
-          continue;
-        }
         const m = C.dirty[id];
         const d = JSON.stringify(m);
         const pub = JSON.stringify(typeof maskMatch === 'function' ? maskMatch(m) : m);
@@ -158,14 +174,42 @@
         else if (j.error === 'not-yours') { delete C.dirty[id]; say('This match belongs to another scorer — not saved online'); }
       }
       ls.set(SYNC, C.sent);
-      C.status = Object.keys(C.dirty).length ? 'saving' : 'saved';
+      C.status = pending() ? 'saving' : 'saved';
     } catch (e) { C.status = e.message === 'auth' ? 'signin' : 'offline'; }
     flushing = false; paintStatus();
-    if (Object.keys(C.dirty).length && C.status === 'saving') setTimeout(flush, 800);
+    if (pending() && C.status === 'saving') setTimeout(flush, 800);
   }
+
+  /* shared team list: bring in everyone's teams, keep local edits that are not uploaded yet */
+  C.pullTeams = async force => {
+    if (!C.configured || !C.token || !C.ok() || C.viewer) return;
+    if (!force && Date.now() - C.teamsAt < 20000) return;
+    C.teamsAt = Date.now();
+    try {
+      const j = await api('listTeams');
+      if (!j.ok) return;
+      const byId = {}; (S.teams || []).forEach(t => byId[t.id] = t);
+      const server = new Set();
+      const next = [];
+      j.teams.forEach(x => {
+        let t; try { t = JSON.parse(x.data); } catch (e) { return; }
+        t.id = x.id; t.owner = x.owner; server.add(x.id);
+        if (C.dirtyT[x.id] && byId[x.id]) next.push(byId[x.id]);
+        else { next.push(t); C.sentT[x.id] = quick(JSON.stringify(t)); }
+      });
+      (S.teams || []).forEach(t => {
+        if (server.has(t.id) || C.delT[t.id]) return;
+        if (C.sentT[t.id]) { delete C.sentT[t.id]; return; }   // removed by its owner elsewhere
+        next.push(t);                                            // new here, not uploaded yet
+      });
+      const before = JSON.stringify(S.teams || []);
+      S.teams = next; ls.set(SYNCT, C.sentT);
+      if (JSON.stringify(next) !== before) rr();
+    } catch (e) {}
+  };
   C.flush = flush;
   window.addEventListener('online', () => { C.status = 'idle'; flush(); });
-  setInterval(() => { if (Object.keys(C.dirty).length) flush(); }, 20000);
+  setInterval(() => { if (pending()) flush(); }, 20000);
 
   async function pull() {
     try {
@@ -183,9 +227,10 @@
         else { S.history = S.history || []; S.history.push(m); }
         changed = true;
       }
-      if (!S.teams || !S.teams.length) {
+      await C.pullTeams(true);
+      if (!S.teams || !S.teams.length) {           // teams saved by the older version of the app
         const t = await api('getTeams');
-        if (t.ok && t.data) { try { S.teams = JSON.parse(t.data); C.sent._teams = quick(t.data); changed = true; } catch (e) {} }
+        if (t.ok && t.data) { try { S.teams = JSON.parse(t.data); changed = true; } catch (e) {} }
       }
       ls.set(SYNC, C.sent);
       if (changed) { rr(); say('Your matches are loaded'); }

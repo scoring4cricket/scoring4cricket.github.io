@@ -15,7 +15,8 @@ var TABS = {
   Matches: ['id', 'owner', 'title', 'status', 'updated', 'data'],
   Live:    ['id', 'updated', 'pub'],
   Teams:   ['email', 'updated', 'data'],
-  Sessions: ['token', 'email', 'name', 'created', 'expires']
+  Sessions: ['token', 'email', 'name', 'created', 'expires'],
+  Squads:  ['id', 'owner', 'name', 'updated', 'data']
 };
 var SESSION_DAYS = 90;
 
@@ -63,6 +64,9 @@ function doPost(e) {
     if (a === 'getMatch') return out(getMatch(me.email, role, body.id));
     if (a === 'saveTeams') return out(saveTeams(me.email, body.data));
     if (a === 'getTeams') return out({ ok: true, data: readText('Teams', me.email, 2) });
+    if (a === 'listTeams') return out({ ok: true, teams: listTeams() });
+    if (a === 'saveTeam') return out(saveTeam(me.email, role, body));
+    if (a === 'deleteTeam') return out(deleteTeam(me.email, role, body.id));
     return out({ error: 'unknown' });
   } catch (err) {
     return out({ error: 'server', detail: String(err) });
@@ -229,6 +233,41 @@ function live(id) {
   var r = findRow('Live', id);
   if (!r) return { error: 'not-found' };
   return { ok: true, pub: joinChunks(r.values, 2), updated: r.values[1] };
+}
+
+/* Shared team list: every approved scorer sees every team; only its creator or an owner can change it. */
+function listTeams() {
+  var v = sheet('Squads').getDataRange().getValues(), outv = [];
+  for (var i = 1; i < v.length; i++) if (v[i][0]) outv.push({ id: String(v[i][0]), owner: String(v[i][1]), data: joinChunks(v[i], 4) });
+  return outv;
+}
+
+function saveTeam(email, role, b) {
+  var id = clean(b.id, 40);
+  if (!id || !/^[A-Za-z0-9_-]+$/.test(id)) return { error: 'bad-id' };
+  if (typeof b.data !== 'string' || b.data.length > 1000000) return { error: 'bad-data' };
+  var res = { ok: true, id: id };
+  withLock(function () {
+    var r = findRow('Squads', id);
+    if (r && role !== 'owner' && String(r.values[1]) !== email) { res = { error: 'not-yours' }; return; }
+    var owner = r ? String(r.values[1]) : email;
+    var name = '';
+    try { name = clean(JSON.parse(b.data).name, 80); } catch (x) {}
+    writeText('Squads', id, [id, owner, name, new Date()], b.data);
+  });
+  return res;
+}
+
+function deleteTeam(email, role, id) {
+  id = String(id || '');
+  var res = { ok: true };
+  withLock(function () {
+    var r = findRow('Squads', id);
+    if (!r) return;
+    if (role !== 'owner' && String(r.values[1]) !== email) { res = { error: 'not-yours' }; return; }
+    sheet('Squads').deleteRow(r.row);
+  });
+  return res;
 }
 
 function saveTeams(email, data) {
