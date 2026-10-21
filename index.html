@@ -700,6 +700,11 @@ body.gated nav.tabs{display:none}
 .rcard{display:grid;gap:4px;text-align:left;width:100%;padding:10px 14px 12px;border:1px solid var(--line);border-top:0;border-radius:0 0 var(--r) var(--r);background:var(--surface-2);color:var(--ink);font:inherit;cursor:pointer}
 .rc-row{display:flex;justify-content:space-between;gap:10px;font-weight:600}.rc-row small{color:var(--muted);font-weight:500}.rc-s{white-space:nowrap}.rc-t{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .rc-res{color:var(--accent,#D4AF37);font-size:14px;margin-top:2px}.biglogo.dl img{width:min(200px,50vw,24vh)}
+.maintabs{grid-template-columns:.85fr 1.45fr 1fr 1fr!important}.maintabs button{text-overflow:clip!important;overflow:visible!important;padding-inline:2px;letter-spacing:0!important;font-size:clamp(12px,3.7vw,15px)!important}.maintabs .shl{overflow:visible;text-overflow:clip;white-space:nowrap}
+.histbar{justify-content:flex-start!important;background:transparent!important;padding:0!important}
+body.cd main>.cardbox{flex:1 1 auto;min-height:0;display:flex;flex-direction:column}
+body.cd .cardbox>.maintabs,body.cd .cardbox>.innbar{flex:none}
+body.cd .cardbox>.cbody{flex:1 1 auto;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;align-content:start}
 .sharebtns{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}.sharebtns .btn{flex:1 1 120px}
 header.top{top:0!important;padding-top:env(safe-area-inset-top,0px);background:var(--bg)!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
 :root[data-style="classic"] header.top{background:#0B1E3F!important}
@@ -1322,12 +1327,12 @@ function render(){
   const M=document.getElementById('main');
   const SEL=['.hbody','.flexscroll','.sheet','main'],keep=document.querySelector?SEL.map(q=>{const el=document.querySelector(q);return el?el.scrollTop:0}):[],wy=window.scrollY||0;
   const same=render.tab===S.tab&&render.sheet===(UI.sheet&&UI.sheet.type);
-  S.setup=null;if(prefs().outdoor)document.documentElement.setAttribute('data-outdoor','1');else document.documentElement.removeAttribute('data-outdoor');document.body.classList.toggle('fit',S.tab==='score'||S.tab==='home');document.body.classList.toggle('sc',S.tab==='score');
+  S.setup=null;if(prefs().outdoor)document.documentElement.setAttribute('data-outdoor','1');else document.documentElement.removeAttribute('data-outdoor');document.body.classList.toggle('fit',S.tab==='score'||S.tab==='home'||S.tab==='card');document.body.classList.toggle('cd',S.tab==='card');document.body.classList.toggle('sc',S.tab==='score');
   const realM=S.match;if(S.tab!=='card'&&S.tab!=='report')S.viewHist=null;if((S.tab==='card'||S.tab==='report')&&S.viewHist!=null&&S.history&&S.history[S.viewHist]){S.match=S.history[S.viewHist];RO=true}
   if(VW)RO=true;
   if(S.tab==='card'&&S.match.deleted&&!RO){M.innerHTML=noMatch()}else
   if(S.tab==='score'&&!UI.sheet&&!S.match.deleted){const st_=stateOf(S.match,cur());if(st_.need==='bowl'&&st_.overs.length)UI.sheet={type:'overend'}}
-  M.innerHTML=(RO&&!VW?`<div class="histbar"><span>Past match</span><button class="btn ghost small" data-act="h-back">Back to past matches</button></div>`:'')+(S.tab==='home'?homeView():S.tab==='score'?scoreView():S.tab==='card'?cardView():S.tab==='live'?liveView():S.tab==='report'?reportView():S.tab==='mine'?mineView():adminView());
+  M.innerHTML=(RO&&!VW?`<div class="histbar"><button class="btn ghost small" data-act="h-back">‹ Completed Matches</button></div>`:'')+(S.tab==='home'?homeView():S.tab==='score'?scoreView():S.tab==='card'?cardView():S.tab==='live'?liveView():S.tab==='report'?reportView():S.tab==='mine'?mineView():adminView());
   S.match=realM;RO=false;
   document.getElementById('sheet').innerHTML=UI.sheet?sheetView():'';
   if(same&&document.querySelector){SEL.forEach((q,i)=>{const el=document.querySelector(q);if(el&&keep[i])el.scrollTop=keep[i]});if(wy&&window.scrollTo)window.scrollTo(0,wy)}
@@ -1496,9 +1501,9 @@ function bookView(m,k,s){const P=m.teams[s.inn.bat].players,Q=m.teams[s.inn.bowl
   const bowl=Object.keys(byB).map(id=>{const w=s.W[id];return `<div class="bk-row"><span class="bk-n">${esc(Q[id]+rt(m.teams[s.inn.bowl],+id))}</span><span class="bk-ovs">${byB[id].map(o=>`<span class="bk-ov${o.live?' live':''}" title="Over ${o.i+1}"><em>${o.i+1}</em>${o.balls.map(c=>`<i class="${c.cls}">${esc(c.chip)}</i>`).join('')}</span>`).join('')}</span><span class="bk-t">${w.o}${w.b?'.'+w.b:''}-${w.m}-${w.r}-${w.w}</span></div>`}).join('');
   return `<div class="minihead">Batting · ball by ball</div><div class="bk">${bat}</div><div class="minihead" style="margin-top:10px">Bowling · over by over</div><div class="bk">${bowl}</div>`}
 function ballLog(m,k,s){
-  let out='',lastOv=-1;
-  s.log.forEach(l=>{const o=parseInt(l.lab);if(o!==lastOv){out+=`<div class="overhead">Over ${o+1} ${chkMark(m.inns[k],o)}</div>`;lastOv=o}
-    out+=`<div class="logrow"><span class="ov">${l.lab}</span><span class="chip ${l.cls}">${esc(l.chip)}</span><span class="d">${esc(l.desc)}</span>${l.edit&&!RO?`<button class="btn ghost small" data-act="edit" data-k="${k}" data-i="${l.i}">Edit</button>`:'<span></span>'}</div>`});
+  let out='',lastOv=-1;const G=[];s.log.forEach(l=>{const o=parseInt(l.lab);if(!G.length||G[G.length-1].o!==o)G.push({o,ls:[]});G[G.length-1].ls.push(l)});
+  G.reverse().forEach(g=>g.ls.reverse().forEach(l=>{const o=g.o;if(o!==lastOv){out+=`<div class="overhead">Over ${o+1} ${chkMark(m.inns[k],o)}</div>`;lastOv=o}
+    out+=`<div class="logrow"><span class="ov">${l.lab}</span><span class="chip ${l.cls}">${esc(l.chip)}</span><span class="d">${esc(l.desc)}</span>${l.edit&&!RO?`<button class="btn ghost small" data-act="edit" data-k="${k}" data-i="${l.i}">Edit</button>`:'<span></span>'}</div>`}));
   return out||'<p class="muted">No balls yet.</p>';
 }
 function cardView(){
@@ -1518,7 +1523,7 @@ function cardView(){
   const tm=i=>{const w=m.toss.w===i;return `<span class="mt-team">${m.teams[i].logo?badge(m.teams[i],20):''}${w?COIN:''}<b class="${tcl(m,i)} ${m.inns[cur()].bat===i?'is-bat':'is-bowl'}">${tn(m,i)}</b>${w?`<span class="tc">${m.toss.d==='bat'?BAT.replace('on strike','chose to bat'):BALL.replace('bowling now','chose to bowl')}</span>`:''}</span>`};
   return `<section class="panel matchtop"><div class="mt-row">${tm(ord(m)[0])}<span class="mt-v">v</span>${tm(ord(m)[1])}${m.teams[ord(m)[0]].logo||m.teams[ord(m)[1]].logo?'':''}<span class="mt-meta">${m.innsPer===2?'2 innings':m.overs+' overs'}${m.pairs?' · pairs':''}${m.freeHit===false?' · no FH':''}</span></div>${infoLine(m)?`<div class="sub">${esc(infoLine(m))}</div>`:''}${res?`<div class="result" style="font-size:20px">${esc(res)}</div>${RO?'':potmLine(m)}`:''}<div class="row end"><button class="btn ghost small" data-act="tab" data-v="report">Match report</button><button class="btn ghost small" data-act="sharecard">Share scorecard</button></div></section>
   <section class="cardbox">
-    <div class="maintabs" role="tablist">${[['sc','Scorecard','Card'],['bb','Ball by ball','Balls'],['gr','Graphs','Graphs'],['lu','Line-ups','Line-ups']].map(([x,l,sh])=>`<button role="tab" data-act="ctab" data-v="${x}" aria-selected="${t===x}"><span class="lg">${l}</span><span class="shl">${sh}</span></button>`).join('')}</div>
+    <div class="maintabs" role="tablist">${[['sc','Scorecard','Card'],['bb','Ball by Ball','Ball by Ball'],['gr','Graphs','Graphs'],['lu','Line-ups','Line-ups']].map(([x,l,sh])=>`<button role="tab" data-act="ctab" data-v="${x}" aria-selected="${t===x}"><span class="lg">${l}</span><span class="shl">${sh}</span></button>`).join('')}</div>
     <div class="innbar">${multi&&t!=='lu'?`<div class="subtabs" role="tablist" style="grid-template-columns:repeat(${m.inns.length},minmax(0,1fr))">${m.inns.map((x,j)=>`<button role="tab" class="${tcl(m,x.bat)}" data-act="cinn" data-v="${j}" aria-selected="${k===j}">${tn(m,x.bat)} ${x.so?'SO':m.innsPer===2?(j<2?'1st':'2nd'):''}</button>`).join('')}</div>`:`<div class="subtabs two" role="tablist">${ord(m).map(i=>`<button role="tab" class="${tcl(m,i)}" data-act="cteam" data-v="${i}" aria-selected="${ti===i}">${tn(m,i)}</button>`).join('')}</div>`}</div>
     <div class="cbody">${body}</div>
   </section>`;
