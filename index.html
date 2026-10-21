@@ -690,8 +690,14 @@ body.fit:not(.sc) .col-info{display:flex;flex-direction:column;gap:8px;flex:none
 .gsi{display:flex;justify-content:center;min-height:44px}
 header.top{top:0!important;padding-top:env(safe-area-inset-top,0px);background:var(--bg)!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
 :root[data-style="classic"] header.top{background:#0B1E3F!important}
-header.top .brand b{color:var(--ink);opacity:1}
-.who:empty{display:none}
+header.top{padding-top:calc(env(safe-area-inset-top,0px) + 12px)}
+header.top .brand b{color:var(--ink);opacity:1;font-size:17px;line-height:1.2}
+header.top .who{display:none}
+.sync b.ini{font-weight:800;letter-spacing:.04em;color:var(--ink)}
+html,body{overflow-x:hidden;max-width:100%}
+.field{min-width:0}
+input[type=date]{-webkit-appearance:none;appearance:none;min-width:0;max-width:100%;display:block;text-align:left;min-height:38px}
+input[type=date]::-webkit-date-and-time-value{text-align:left}
 .wzc{display:grid;gap:8px}.wzc .panel{padding:10px 12px}.wzc .grid2,.wzc .grid3{gap:8px 10px}.wzc .field{gap:3px}.wzc .field label{font-size:12px}
 .wzc input,.wzc select{padding:7px 10px}.wzc h3{font-size:13px}.morerow{grid-column:1/-1;display:flex;justify-content:flex-end;margin-top:-2px}
 </style>

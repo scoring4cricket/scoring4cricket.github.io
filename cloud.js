@@ -206,10 +206,14 @@
     let v = !C.configured ? ['Saved on this device', 'ok'] : C.viewer ? ['Live scoreboard', 'ok'] : C.ok() ? map[C.status] || map.idle : null;
     el.hidden = !v; el.style.display = v ? '' : 'none';
     if (!v) return;
-    el.innerHTML = '<i></i>' + v[0];
+    const ini = C.user && C.ok() && !C.viewer ? initials(C.user.name || C.user.email) : '';
+    const quiet = ['Signed in', 'Saved online'].includes(v[0]);
+    el.innerHTML = '<i></i>' + (ini ? '<b class="ini">' + ini + '</b>' + (quiet ? '' : ' · ' + v[0]) : v[0]);
+    el.title = (C.user ? C.user.name + ' · ' + (C.role === 'owner' ? 'Owner' : 'Scorer') + ' · ' : '') + v[0];
     el.className = 'sync st-' + v[1];
-    if (C.status === 'signin' && !C.viewer) el.setAttribute('data-act', 'signin'); else el.removeAttribute('data-act');
+    if (C.status === 'signin' && !C.viewer) el.setAttribute('data-act', 'signin'); else if (C.user && C.ok() && !C.viewer) { el.setAttribute('data-act', 'role'); } else el.removeAttribute('data-act');
   }
+  function initials(n) { const w = String(n).replace(/@.*/, '').trim().split(/[\s._-]+/).filter(Boolean); return ((w[0] || '?')[0] + (w.length > 1 ? w[w.length - 1][0] : '')).toUpperCase(); }
   C.paintStatus = paintStatus;
   C.signinAgain = promptSignIn;
 
