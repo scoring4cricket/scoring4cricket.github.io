@@ -14,8 +14,10 @@ var TABS = {
   Users:   ['email', 'name', 'club', 'status', 'requested', 'decided'],
   Matches: ['id', 'owner', 'title', 'status', 'updated', 'data'],
   Live:    ['id', 'updated', 'pub'],
-  Teams:   ['email', 'updated', 'data']
+  Teams:   ['email', 'updated', 'data'],
+  Sessions: ['token', 'email', 'name', 'created', 'expires']
 };
+var SESSION_DAYS = 90;
 
 /* ---------- entry points ---------- */
 
@@ -39,7 +41,12 @@ function doPost(e) {
     var role = roleOf(me.email);
     var a = body.action;
 
-    if (a === 'me') return out({ ok: true, user: userInfo(me, role), open: isOpen() });
+    if (a === 'me') {
+      var res = { ok: true, user: userInfo(me, role), open: isOpen() };
+      if (!me.session) { var ses = newSession(me); res.session = ses.token; res.sessionExp = ses.expires; }
+      return out(res);
+    }
+    if (a === 'logout') { if (me.session) endSession(body.token); return out({ ok: true }); }
     if (a === 'request') return out(requestAccess(me, body));
 
     if (a === 'listUsers' || a === 'setUser' || a === 'setOpen') {
@@ -86,6 +93,7 @@ function isOpen() { return props().getProperty('OPEN') === '1'; }
 
 function verify(token) {
   if (!token || typeof token !== 'string' || token.length > 4000) return null;
+  if (token.indexOf('s4c.') === 0) return session(token);
   var cache = CacheService.getScriptCache();
   var key = 'tok_' + Utilities.base64EncodeWebSafe(Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, token));
   var hit = cache.get(key);
@@ -101,6 +109,33 @@ function verify(token) {
   var me = { email: String(t.email).toLowerCase(), name: t.name || t.email, picture: t.picture || '' };
   cache.put(key, JSON.stringify(me), Math.max(1, Math.min(600, left)));
   return me;
+}
+
+/* Long-lived app sessions, so scorers stay signed in after Google's 1-hour sign-in token expires. */
+function newSession(me) {
+  var token = 's4c.' + Utilities.getUuid().replace(/-/g, '') + Utilities.getUuid().replace(/-/g, '');
+  var now = new Date(), exp = new Date(now.getTime() + SESSION_DAYS * 864e5);
+  withLock(function () { sheet('Sessions').appendRow([token, me.email, me.name, now, exp]); });
+  CacheService.getScriptCache().put('ses_' + token, JSON.stringify({ email: me.email, name: me.name, picture: me.picture || '', session: true, exp: exp.getTime() }), 21600);
+  return { token: token, expires: exp.getTime() };
+}
+
+function session(token) {
+  var cache = CacheService.getScriptCache(), hit = cache.get('ses_' + token);
+  var me = hit ? JSON.parse(hit) : null;
+  if (!me) {
+    var r = findRow('Sessions', token);
+    if (!r) return null;
+    me = { email: String(r.values[1]).toLowerCase(), name: r.values[2], picture: '', session: true, exp: new Date(r.values[4]).getTime() };
+    cache.put('ses_' + token, JSON.stringify(me), 21600);
+  }
+  if (!(me.exp > Date.now())) return null;
+  return me;
+}
+
+function endSession(token) {
+  CacheService.getScriptCache().remove('ses_' + token);
+  withLock(function () { var r = findRow('Sessions', token); if (r) sheet('Sessions').deleteRow(r.row); });
 }
 
 function roleOf(email) {

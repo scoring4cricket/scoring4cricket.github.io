@@ -44,34 +44,26 @@
   }
   C.api = api;
 
-  /* ---------- sign-in ---------- */
-  function parseJwt(t) { try { return JSON.parse(atob(t.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))); } catch (e) { return {}; } }
-
-  function loadGsi(cb) {
-    if (window.google && google.accounts && google.accounts.id) return cb();
-    const s = document.createElement('script');
-    s.src = 'https://accounts.google.com/gsi/client'; s.async = true; s.onload = cb;
-    s.onerror = () => { C.err = 'Could not load Google sign-in. Check your connection.'; rr(); };
-    document.head.appendChild(s);
+  /* ---------- sign-in (full-page redirect: works inside the home-screen app too) ---------- */
+  function parseJwt(t) { try { return JSON.parse(decodeURIComponent(escape(atob(t.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))))); } catch (e) { return {}; } }
+  const NONCE = 's4c-nonce';
+  function startSignIn() {
+    const nonce = Math.random().toString(36).slice(2) + Date.now().toString(36);
+    ls.set(NONCE, nonce);
+    const q = new URLSearchParams({ client_id: CFG.CLIENT_ID, redirect_uri: CFG.BASE, response_type: 'id_token', scope: 'openid email profile', nonce, prompt: 'select_account' });
+    location.href = 'https://accounts.google.com/o/oauth2/v2/auth?' + q.toString();
   }
-  let gsiInit = false;
-  function initGsi() {
-    if (gsiInit || !window.google) return;
-    google.accounts.id.initialize({ client_id: CFG.CLIENT_ID, callback: onCredential, auto_select: true, cancel_on_tap_outside: false, use_fedcm_for_prompt: true });
-    gsiInit = true;
-  }
-  function promptSignIn() { loadGsi(() => { initGsi(); try { google.accounts.id.prompt(); } catch (e) {} }); }
-  C.drawButton = () => {
-    const el = document.getElementById('gsi');
-    if (!el) return;
-    loadGsi(() => { initGsi(); el.innerHTML = ''; google.accounts.id.renderButton(el, { theme: 'filled_blue', size: 'large', shape: 'pill', text: 'continue_with', width: 280 }); });
-  };
-
-  async function onCredential(r) {
-    C.token = r.credential;
-    const p = parseJwt(C.token);
-    ls.set(TOK, { t: C.token, exp: (p.exp || 0) * 1000 });
-    await whoAmI(true);
+  function promptSignIn() { C.status = 'signin'; paintStatus(); }
+  C.drawButton = () => {};
+  function takeRedirect() {
+    if (!/[#&](id_token|error)=/.test(location.hash)) return null;
+    const h = new URLSearchParams(location.hash.slice(1));
+    history.replaceState(null, '', location.pathname + location.search);
+    if (h.get('error')) { C.err = h.get('error') === 'access_denied' ? 'Sign-in was cancelled.' : 'Google sign-in failed (' + h.get('error') + ').'; return null; }
+    const t = h.get('id_token'), p = parseJwt(t || '');
+    if (!t || p.nonce !== ls.get(NONCE)) { C.err = 'Sign-in could not be confirmed. Please try again.'; return null; }
+    ls.set(NONCE, null);
+    return t;
   }
 
   async function whoAmI(fresh) {
@@ -81,6 +73,7 @@
       if (j.ok) {
         const was = C.role;
         C.user = j.user; C.role = j.user.role; C.open = !!j.open;
+        if (j.session) { C.token = j.session; ls.set(TOK, { t: j.session, exp: j.sessionExp || Date.now() + 864e5 * 30 }); }
         ls.set(WHO, { user: C.user, role: C.role });
         if (C.status === 'signin') C.status = 'idle';
         if ((C.role === 'owner' || C.role === 'scorer') && (fresh || was !== C.role)) pull();
@@ -93,9 +86,10 @@
   }
 
   C.signOut = () => {
-    ls.set(TOK, null); ls.set(WHO, null); C.token = null; C.user = null; C.role = 'none'; C.users = null;
-    try { google.accounts.id.disableAutoSelect(); } catch (e) {}
-    rr(); setTimeout(C.drawButton, 50);
+    const t = C.token;
+    if (t && String(t).indexOf('s4c.') === 0) api('logout').catch(() => {});
+    ls.set(TOK, null); ls.set(WHO, null); C.token = null; C.user = null; C.role = 'none'; C.users = null; C.status = 'idle';
+    rr();
   };
 
   C.request = async (name, club) => {
@@ -223,7 +217,7 @@
     const head = `<div class="gate-logo"><img src="icons/logo.png" alt="Scoring 4 Cricket" width="200" height="200"></div>`;
     let body;
     if (C.busy && !C.user) body = `<p class="sub">Checking your account…</p>`;
-    else if (!C.user) body = `<h2>Welcome to Scoring 4 Cricket</h2><p class="sub">Sign in with Google to score matches. Watching a game? Open the live link the scorer sent you — no sign-in needed.</p><div id="gsi" class="gsi"></div>`;
+    else if (!C.user) body = `<h2>Welcome to Scoring 4 Cricket</h2><p class="sub">Sign in with Google to score matches. Watching a game? Open the live link the scorer sent you — no sign-in needed.</p><div class="gsi"><button class="gbtn" data-act="gsignin"><svg viewBox="0 0 48 48" width="22" height="22" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.8 2.4 30.3 0 24 0 14.6 0 6.6 5.4 2.7 13.3l7.9 6.1C12.5 13.6 17.8 9.5 24 9.5z"/><path fill="#4285F4" d="M46.1 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.4c-.5 2.9-2.2 5.3-4.6 7l7.1 5.5c4.2-3.9 7.2-9.6 7.2-17z"/><path fill="#FBBC05" d="M10.6 28.6A14.5 14.5 0 0 1 9.5 24c0-1.6.3-3.2.8-4.6l-7.9-6.1A24 24 0 0 0 0 24c0 3.9.9 7.5 2.6 10.7l8-6.1z"/><path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.1-5.5c-2 1.4-4.7 2.3-8.8 2.3-6.2 0-11.5-4.2-13.4-9.9l-8 6.1C6.6 42.6 14.6 48 24 48z"/></svg><span>Continue with Google</span></button></div>`;
     else if (C.role === 'none') body = `<h2>Request scorer access</h2><p class="sub">Signed in as ${e(C.user.email)}. Tell the app owner who you are and they'll approve you.</p>
       <div class="field"><label for="rq-name">Your name</label><input id="rq-name" value="${e(C.user.name)}" maxlength="60"></div>
       <div class="field"><label for="rq-club">Club or team</label><input id="rq-club" placeholder="e.g. Nepean Hawks U14" maxlength="80"></div>
@@ -237,7 +231,7 @@
   C.handle = (act, b) => {
     switch (act) {
       case 'signout': C.signOut(); return true;
-      case 'signin': promptSignIn(); return true;
+      case 'signin': case 'gsignin': startSignIn(); return true;
       case 'rq-send': C.request((document.getElementById('rq-name') || {}).value || '', (document.getElementById('rq-club') || {}).value || ''); return true;
       case 'rq-check': whoAmI(false); return true;
     }
@@ -275,10 +269,12 @@
   C.start = () => {
     if (C.viewer) { pollLive(); return; }
     if (!C.configured) { C.ready = true; return; }
+    const fromGoogle = takeRedirect();
+    if (fromGoogle) { C.token = fromGoogle; whoAmI(true); return; }
     const who = ls.get(WHO);
     if (who && who.user) { C.user = who.user; C.role = who.role; }   // lets an approved scorer keep scoring offline
     const saved = ls.get(TOK);
     if (saved && saved.t && saved.exp > Date.now() + 60000) { C.token = saved.t; whoAmI(false); }
-    else { C.ready = true; if (C.ok()) C.status = 'signin'; promptSignIn(); setTimeout(C.drawButton, 50); }
+    else { C.ready = true; if (C.ok() && C.user) promptSignIn(); rr(); }
   };
 })();
