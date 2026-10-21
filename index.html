@@ -692,6 +692,7 @@ body.fit:not(.sc) .col-info{display:flex;flex-direction:column;gap:8px;flex:none
 body.gated nav.tabs{display:none}
 .cardimg{max-height:40vh;width:auto!important;max-width:100%!important}.sumtxt{max-height:96px!important}
 .histbar{padding:4px 6px 4px 12px!important;font-size:13.5px}.histbar .btn{padding:5px 10px;font-size:12.5px;min-height:30px}
+.biglogo{display:grid;justify-items:center;gap:18px;margin:18px 0 8px}.biglogo img{width:min(220px,56vw);height:auto;filter:drop-shadow(0 6px 14px rgba(0,0,0,.35))}
 .sharebtns{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}.sharebtns .btn{flex:1 1 120px}
 header.top{top:0!important;padding-top:env(safe-area-inset-top,0px);background:var(--bg)!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
 :root[data-style="classic"] header.top{background:#0B1E3F!important}
@@ -733,8 +734,9 @@ function wkEnd(s){const w=UI.w;if(w.k!=='run out'||w.endSet)return;const odd=(w.
 function load(){try{const t=localStorage.getItem(KEY);return t?JSON.parse(t):null}catch(e){return null}}
 function save(){if(window.CLOUD&&CLOUD.viewer)return;try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}if(window.CLOUD)CLOUD.onSave(S)}
 
+function blankMatch(){return {deleted:true,end:{why:'Deleted',text:'No match yet'},overs:20,fmt:'std',freeHit:true,innsPer:1,maxOv:0,retireAt:0,pairs:null,info:{},teams:[{name:'Team 1',players:[]},{name:'Team 2',players:[]}],toss:{w:0,d:'bat'},inns:[{bat:0,bowl:1,ev:[]}]}}
 function fresh(){
-  return {style:'classic',themeV:2,tab:'home',setup:null,wiz:null,teams:[],match:Object.assign(sampleMatch(),{deleted:true,end:{why:'Deleted',text:'No match yet'}}),
+  return {style:'classic',themeV:2,tab:'home',setup:null,wiz:null,teams:[],match:blankMatch(),
     admin:{open:false,reqs:[]}};
 }
 
@@ -944,40 +946,6 @@ function resultOf(m){
 }
 
 /* ---------- sample ---------- */
-function sampleMatch(){
-  const m={title:'Nepean Hawks v Emu Plains',sample:true,overs:20,fmt:'std',
-    teams:[{name:'Nepean Hawks',c:0,vc:2,wk:4,players:['A. Sharma','J. Wilson','R. Patel','M. Chen',"D. O'Brien",'S. Reddy','T. Nguyen','L. Harris','K. Singh','B. Taylor','P. Kumar']},
-           {name:'Emu Plains',c:1,wk:3,players:['C. Murphy','V. Rao','N. Ahmed','G. Brown','H. Lee','E. Walsh','F. Ali','I. Smith','O. Clarke','W. Das','Z. Khan']}],
-    toss:{w:1,d:'bowl'},freeHit:true,innsPer:1,maxOv:4,retireAt:0,pairs:null,inns:[{bat:0,bowl:1,ev:[{t:'start',st:0,ns:1,bo:10}]}]};
-  let seed=11;const rnd=()=>(seed=(seed*16807)%2147483647)/2147483647;
-  const bowlers=[10,9,8,7,6];let bi=1,wkK=['caught','bowled','lbw','caught','run out'],wi=0,guard=0;
-  while(guard++<400){
-    const s=stateOf(m,0);
-    if(s.ov>=12&&s.ol>=3)break;
-    const ev=m.inns[0].ev;
-    if(s.need==='bat'){for(let p=0;p<11;p++){if(!s.B[p]&&p!==s.st&&p!==s.ns){ev.push({t:'bat',id:p});break}}continue}
-    if(s.need==='bowl'){let b=bowlers[bi++%5];if(b===s.last)b=bowlers[bi++%5];ev.push({t:'bowl',id:b});continue}
-    const v=rnd();
-    if(v<.34)ev.push({t:'ball',r:0});
-    else if(v<.64)ev.push({t:'ball',r:1});
-    else if(v<.73)ev.push({t:'ball',r:2});
-    else if(v<.75)ev.push({t:'ball',r:3});
-    else if(v<.86)ev.push({t:'ball',r:4});
-    else if(v<.90)ev.push({t:'ball',r:6});
-    else if(v<.93)ev.push({t:'ball',x:'wd',xr:0});
-    else if(v<.945)ev.push({t:'ball',x:'nb',r:1});
-    else if(v<.96)ev.push({t:'ball',x:'lb',xr:1});
-    else{const k=wkK[wi++%5];ev.push({t:'ball',r:0,w:{k,out:s.st,f:k==='caught'||k==='run out'?[0,2,4,5,3][wi%5]:null}})}
-  }
-  return m;
-}
-
-/* ---------- home: teams, squads, playing XI, toss, openers ---------- */
-function seedTeams(){return [
-  {id:'t1',name:'Nepean Hawks',squad:['A. Sharma','J. Wilson','R. Patel','M. Chen',"D. O'Brien",'S. Reddy','T. Nguyen','L. Harris','K. Singh','B. Taylor','P. Kumar','N. Joshi','C. Evans','Y. Ito']},
-  {id:'t2',name:'Emu Plains',squad:['C. Murphy','V. Rao','N. Ahmed','G. Brown','H. Lee','E. Walsh','F. Ali','I. Smith','O. Clarke','W. Das','Z. Khan','R. Menon','A. Fox']},
-  {id:'t3',name:'Penrith Gold',squad:['S. Varma','J. Cole','M. Iqbal','T. Reid','K. Bose','D. Lim','P. Nair','H. Grant','E. Shah','L. Moore','B. Roy','G. Dutta']},
-  {id:'t4',name:'Glenmore Park Juniors',squad:['O. Park','M. Reddy','J. Tan','A. Bell','R. Shah','K. Wood','S. Rao','L. Ng','D. Hart','T. Bose','F. Kaur']}]}
 function blankWiz(){const d=new Date();return {dt:d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'),gr:'',cn:'',rd:'',u1:'',u2:'',pn:'full',step:1,a:'t1',b:'t2',overs:50,fmt:'std',fh:'yes',ty:'one',mo:'10',ra:'0',pr:'off',pov:'4',ppen:'5',fol:'100',side:0,sel:{},cap:{},vc:{},wk:{},tw:null,td:null,st:'',ns:'',bo:'',cp:'od',bm:'0',lms:'no',rr:'no',nt:'',np:''}}
 function teamById(id){return S.teams.find(t=>t.id===id)}
 function wizSel(id){const w=S.wiz;if(!w.sel[id]){const t=teamById(id);w.sel[id]=t?t.squad.slice(0,11).map((n,i)=>i):[]}return w.sel[id]}
@@ -1261,10 +1229,11 @@ function activityPanel(){if(S.match.deleted)return '';const m=S.match,rows=[];m.
 /* ---------- teams & squads, past matches, privacy ---------- */
 let RO=false;
 function badge(t,sz){sz=sz||34;return t&&t.logo?`<img class="tlogo" src="${t.logo}" alt="" style="width:${sz}px;height:${sz}px">`:`<span class="tlogo ini" style="width:${sz}px;height:${sz}px">${esc(t?ini(t.name):'')}</span>`}
-function homeNav(){const n=(S.history||[]).length;return `<div class="homenav"><button class="btn ghost small" data-act="hv" data-v="teams">Teams &amp; squads</button><button class="btn ghost small" data-act="hv" data-v="past">Past matches${n?' ('+n+')':''}</button></div>`}
-function teamsView(){return `<div class="row" style="justify-content:space-between"><h2 class="home-h" style="margin:0">Teams &amp; squads</h2><button class="btn ghost small" data-act="hv" data-v="">Back</button></div>
-  <section class="panel tlist">${S.teams.map(t=>`<button class="trow" data-act="hv" data-v="team:${t.id}">${badge(t)}<span class="tn2"><b>${esc(t.name)}</b><small>${t.squad.length} player${t.squad.length===1?'':'s'}</small></span><span class="go">Edit ›</span></button>`).join('')}</section>
-  <section class="panel"><div class="field"><label for="nt2">New team</label><div class="row" style="flex-wrap:nowrap"><input id="nt2" data-tnew="1" placeholder="Team name" value="${esc(UI.tnew||'')}"><button class="btn" data-act="t-create">Create</button></div></div>${UI.err?`<p class="err">${esc(UI.err)}</p>`:''}</section>`}
+function homeNav(){const n=(S.history||[]).length;return `<div class="homenav"><button class="btn ghost small" data-act="hv" data-v="teams">Squads and teams</button><button class="btn ghost small" data-act="hv" data-v="past">Past matches${n?' ('+n+')':''}</button></div>`}
+function teamsView(){return `<div class="row" style="justify-content:space-between"><h2 class="home-h" style="margin:0">Squads and teams</h2><button class="btn ghost small" data-act="hv" data-v="">Back</button></div>
+  ${S.teams.length?'':'<p class="sub" style="margin:0">No teams yet. Create your first team below.</p>'}${S.teams.length?`<section class="panel tlist">`:'<section hidden>'}${S.teams.map(t=>`<button class="trow" data-act="hv" data-v="team:${t.id}">${badge(t)}<span class="tn2"><b>${esc(t.name)}</b><small>${t.squad.length} player${t.squad.length===1?'':'s'}</small></span><span class="go">Edit ›</span></button>`).join('')}</section>
+  <section class="panel"><div class="field"><label for="nt2">New team</label><div class="row" style="flex-wrap:nowrap"><input id="nt2" data-tnew="1" placeholder="Team name" value="${esc(UI.tnew||'')}"><button class="btn" data-act="t-create">Create</button></div></div>${UI.err?`<p class="err">${esc(UI.err)}</p>`:''}</section>
+  <div class="biglogo"><img src="icons/logo.png" alt="Scoring 4 Cricket" width="220" height="220"></div>`}
 function teamEdit(id){const t=teamById(id);if(!t){S.hv='teams';return teamsView()}t.hands=t.hands||{};
   return `<div class="row" style="justify-content:space-between"><h2 class="home-h" style="margin:0">Edit team</h2><button class="btn ghost small" data-act="hv" data-v="teams">Done</button></div>
   <section class="panel" style="display:grid;gap:12px"><div class="row" style="flex-wrap:nowrap;align-items:center">${badge(t,54)}
@@ -1284,7 +1253,7 @@ function infoLine(m,short){const f=m.info||{};const d=f.date?new Date(f.date+'T0
   return [d,f.ground,f.comp,f.round?'Round '+f.round:'',!short&&f.umps&&f.umps.length?'Umpires: '+f.umps.join(', '):''].filter(Boolean).join(' · ')}
 function maskName(n,mode){const w=String(n).trim().split(/\s+/);if(mode==='first')return w[0];if(mode==='init')return w.map(x=>x[0]).join('').toUpperCase();return n}
 function maskMatch(m){if(!m.pubNames||m.pubNames==='full')return m;const c=JSON.parse(JSON.stringify(m));c.teams.forEach(t=>t.players=t.players.map(n=>maskName(n,m.pubNames)));return c}
-function noMatch(){return `<section class="callout"><h2>No match in progress</h2><p>Start one from Home.</p></section><div class="row end"><button class="btn" data-act="tab" data-v="home">Go to Home</button></div>`}
+function noMatch(){return `<section class="callout"><h2>No match in progress</h2><p>Start one from Home.</p></section><div class="biglogo"><img src="icons/logo.png" alt="Scoring 4 Cricket" width="240" height="240"><button class="btn" data-act="tab" data-v="home">Go to Home</button></div>`}
 function fitLogo(file,cb){const r=new FileReader();r.onload=()=>{const im=new Image();im.onload=()=>{const c=document.createElement('canvas'),s=128;c.width=c.height=s;const x=c.getContext('2d'),k=Math.max(s/im.width,s/im.height),w=im.width*k,h=im.height*k;x.drawImage(im,(s-w)/2,(s-h)/2,w,h);cb(c.toDataURL('image/png'))};im.src=r.result};r.readAsDataURL(file)}
 function renameSquad(oldTeam,newTeam,oldN,newN){const t=S.teams.find(x=>x.name===oldTeam);if(!t)return;if(newTeam)t.name=newTeam;if(oldN!=null){const i=t.squad.indexOf(oldN);if(i>=0){t.squad[i]=newN;if(t.hands&&t.hands[oldN]){t.hands[newN]=t.hands[oldN];delete t.hands[oldN]}}}}
 
@@ -1319,7 +1288,7 @@ const ICONS={
  admin:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l7 3v5c0 4.6-3 8.3-7 10-4-1.7-7-5.4-7-10V6z"/><path d="M9 12l2 2 4-4"/></svg>'};
 
 function render(){
-  if(!S.themeV){S.style='classic';S.themeV=2}if(!THEMES.some(t=>t.k===S.style))S.style='classic';if(S.style==='turf')document.documentElement.removeAttribute('data-style');else document.documentElement.setAttribute('data-style',S.style);
+  if(!S.themeV){S.style='classic';S.themeV=2}if(S.match&&(S.match.sample||(S.match.deleted&&S.match.teams&&S.match.teams[0].name==='Nepean Hawks')))S.match=blankMatch();if(S.history&&S.history.some(h=>h.sample))S.history=S.history.filter(h=>!h.sample);if(!THEMES.some(t=>t.k===S.style))S.style='classic';if(S.style==='turf')document.documentElement.removeAttribute('data-style');else document.documentElement.setAttribute('data-style',S.style);
   
   const CL=window.CLOUD,VW=CL&&CL.viewer;
   document.body.classList.toggle('gated',!!(CL&&!VW&&!CL.ok()));
@@ -1979,7 +1948,6 @@ document.addEventListener('click',ev=>{
     case 'role':if(window.CLOUD&&CLOUD.viewer)break;S.tab=S.role==='scorer'?'mine':'admin';render();window.scrollTo(0,0);break;
     case 'opensignup':if(window.CLOUD&&CLOUD.configured){CLOUD.setOpen(!CLOUD.open);break}S.admin.open=!S.admin.open;render();break;
     case 'req':if(window.CLOUD&&CLOUD.configured){const r=CLOUD.reqs()[+b.dataset.i];if(r)CLOUD.setUser(r.e,v);break}S.admin.reqs[+b.dataset.i].s=v;render();toast(v==='approved'?'Scorer approved':'Access blocked');break;
-    case 'reset':{const st=S.style;S=fresh();S.style=st;S.tab='score';UI={sheet:null,w:null,err:''};render();toast('Sample match restored');break}
   }
 });
 function selectUrl(){const el=document.getElementById('shareurl');if(!el)return;const r=document.createRange();r.selectNodeContents(el);const s=getSelection();s.removeAllRanges();s.addRange(r);toast('Press copy on your keyboard')}
