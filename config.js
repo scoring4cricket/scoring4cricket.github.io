@@ -4,6 +4,6 @@
    While either is empty the app runs in local mode (saves on this device only). */
 window.S4C_CONFIG = {
   API_URL: '',
-  CLIENT_ID: '',
+  CLIENT_ID: '739125466880-htq581e97fnsaisl9te96bpb2l1d18lo.apps.googleusercontent.com',
   BASE: 'https://scoring4cricket.github.io/'
 };
