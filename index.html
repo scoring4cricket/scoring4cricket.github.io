@@ -688,6 +688,10 @@ body.fit:not(.sc) .col-info{display:flex;flex-direction:column;gap:8px;flex:none
 .gate .field{text-align:left}.gate .row{justify-content:center}
 .gate-logo img{width:min(200px,55vw);height:auto;display:block;margin:0 auto}
 .gsi{display:flex;justify-content:center;min-height:44px}
+header.top{top:0!important;padding-top:env(safe-area-inset-top,0px);background:var(--bg)!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
+:root[data-style="classic"] header.top{background:#0B1E3F!important}
+header.top .brand b{color:var(--ink);opacity:1}
+.who:empty{display:none}
 .wzc{display:grid;gap:8px}.wzc .panel{padding:10px 12px}.wzc .grid2,.wzc .grid3{gap:8px 10px}.wzc .field{gap:3px}.wzc .field label{font-size:12px}
 .wzc input,.wzc select{padding:7px 10px}.wzc h3{font-size:13px}.morerow{grid-column:1/-1;display:flex;justify-content:flex-end;margin-top:-2px}
 </style>
@@ -711,7 +715,7 @@ const NODELIVERY=['retired hurt','retired out','retired not out','timed out'];
 const KINDS=['bowled','caught','lbw','run out','stumped','hit wicket','obstructing the field','retired out','retired hurt','timed out'];
 const FREEHIT_OK=['run out','obstructing the field','retired out','retired hurt','timed out'];
 
-let S=(window.CLOUD&&CLOUD.viewer)?Object.assign(fresh(),{style:(load()||{}).style||'turf',prefs:(load()||{}).prefs,tab:'live'}):(load()||fresh());
+let S=(window.CLOUD&&CLOUD.viewer)?Object.assign(fresh(),{style:(load()||{}).style||'classic',prefs:(load()||{}).prefs,tab:'live'}):(load()||fresh());
 let UI={sheet:null,w:null,err:'',ed:null,rv:{}};
 function wkEnd(s){const w=UI.w;if(w.k!=='run out'||w.endSet)return;const odd=(w.r||0)%2===1;w.end=w.out===s.st?(odd?'st':'ns'):(odd?'ns':'st')}
 
@@ -719,7 +723,7 @@ function load(){try{const t=localStorage.getItem(KEY);return t?JSON.parse(t):nul
 function save(){if(window.CLOUD&&CLOUD.viewer)return;try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}if(window.CLOUD)CLOUD.onSave(S)}
 
 function fresh(){
-  return {style:'turf',tab:'home',setup:null,wiz:null,teams:[],match:Object.assign(sampleMatch(),{deleted:true,end:{why:'Deleted',text:'No match yet'}}),
+  return {style:'classic',themeV:2,tab:'home',setup:null,wiz:null,teams:[],match:Object.assign(sampleMatch(),{deleted:true,end:{why:'Deleted',text:'No match yet'}}),
     admin:{open:false,reqs:[]}};
 }
 
@@ -1253,7 +1257,7 @@ const ICONS={
  admin:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l7 3v5c0 4.6-3 8.3-7 10-4-1.7-7-5.4-7-10V6z"/><path d="M9 12l2 2 4-4"/></svg>'};
 
 function render(){
-  if(!THEMES.some(t=>t.k===S.style))S.style='turf';if(S.style==='turf')document.documentElement.removeAttribute('data-style');else document.documentElement.setAttribute('data-style',S.style);
+  if(!S.themeV){S.style='classic';S.themeV=2}if(!THEMES.some(t=>t.k===S.style))S.style='classic';if(S.style==='turf')document.documentElement.removeAttribute('data-style');else document.documentElement.setAttribute('data-style',S.style);
   
   const CL=window.CLOUD,VW=CL&&CL.viewer;
   if(CL&&!VW&&!CL.ok()){document.getElementById('tabs').innerHTML='';document.getElementById('who').textContent='';document.getElementById('main').innerHTML=CL.gateView();document.getElementById('sheet').innerHTML='';UI.sheet=null;document.body.classList.remove('fit','sc');setTimeout(CL.drawButton,0);CL.paintStatus();return}
