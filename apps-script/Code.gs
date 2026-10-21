@@ -6,6 +6,7 @@
  * Script properties (Project Settings → Script properties):
  *   CLIENT_ID  – the OAuth Web client ID from Google Cloud (required)
  *   OWNERS     – comma-separated owner emails (optional; defaults below)
+ *   NOTIFY     – email that gets new scorer requests (optional; defaults to scoring4cricket@gmail.com)
  */
 
 var DEFAULT_OWNERS = 'scoring4cricket@gmail.com,sm466991234@gmail.com,bmpwestside@gmail.com';
@@ -27,6 +28,7 @@ function doGet(e) {
   try {
     if (p.action === 'live') return out(live(p.id));
     if (p.action === 'ping') return out({ ok: true, app: 'S4C', time: new Date().toISOString() });
+    if (p.action === 'decide') return decidePage(p.e, p.s, p.k);
     return out({ error: 'unknown' });
   } catch (err) {
     return out({ error: 'server', detail: String(err) });
@@ -84,6 +86,8 @@ function setup() {
   var first = ss.getSheetByName('Sheet1');
   if (first && ss.getSheets().length > 1 && first.getLastRow() === 0) ss.deleteSheet(first);
   UrlFetchApp.fetch('https://oauth2.googleapis.com/tokeninfo?id_token=x', { muteHttpExceptions: true });
+  MailApp.getRemainingDailyQuota();   // asks for permission to send request emails
+  secret();
   Logger.log('S4C setup done. CLIENT_ID set: ' + !!props().getProperty('CLIENT_ID'));
 }
 
@@ -160,12 +164,14 @@ function requestAccess(me, body) {
   if (role === 'owner' || role === 'scorer' || role === 'blocked') return { ok: true, user: userInfo(me, role) };
   var name = clean(body.name, 60) || me.name, club = clean(body.club, 80);
   var status = isOpen() ? 'approved' : 'pending';
+  var isNew = !findRow('Users', me.email);
   withLock(function () {
     var u = findRow('Users', me.email);
     var row = [me.email, name, club, u ? u.values[3] : status, u ? u.values[4] : new Date(), u ? u.values[5] : (status === 'approved' ? 'open sign-up' : '')];
     if (u) sheet('Users').getRange(u.row, 1, 1, row.length).setValues([row]);
     else sheet('Users').appendRow(row);
   });
+  if (isNew) { try { notifyRequest(me.email, name, club, status); } catch (x) { Logger.log('Email failed: ' + x); } }
   return { ok: true, user: userInfo(me, roleOf(me.email)) };
 }
 
@@ -185,6 +191,52 @@ function setUser(email, status, by) {
     sheet('Users').getRange(u.row, 4, 1, 3).setValues([[status, u.values[4], by + ' · ' + new Date().toISOString().slice(0, 10)]]);
   });
   return { ok: true, users: listUsers() };
+}
+
+/* ---------- email notification for new scorer requests ---------- */
+
+function notifyTo() { return props().getProperty('NOTIFY') || 'scoring4cricket@gmail.com'; }
+
+function secret() {
+  var s = props().getProperty('LINK_SECRET');
+  if (!s) { s = Utilities.getUuid() + Utilities.getUuid(); props().setProperty('LINK_SECRET', s); }
+  return s;
+}
+
+function sign(email, status) {
+  return Utilities.base64EncodeWebSafe(Utilities.computeHmacSha256Signature(String(email).toLowerCase() + '|' + status, secret())).replace(/=+$/, '');
+}
+
+function decideUrl(email, status) {
+  return ScriptApp.getService().getUrl() + '?action=decide&e=' + encodeURIComponent(email) + '&s=' + status + '&k=' + sign(email, status);
+}
+
+function notifyRequest(email, name, club, status) {
+  var esc = function (t) { return String(t).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); };
+  var who = esc(name) + (club ? ' (' + esc(club) + ')' : '') + ' &lt;' + esc(email) + '&gt;';
+  var btn = function (href, label, bg) { return '<a href="' + href + '" style="display:inline-block;padding:12px 22px;margin:4px 8px 4px 0;border-radius:24px;background:' + bg + ';color:#fff;text-decoration:none;font-weight:bold">' + label + '</a>'; };
+  var html, subject;
+  if (status === 'approved') {
+    subject = 'S4C: ' + name + ' joined as a scorer';
+    html = '<p>' + who + ' signed in and was approved automatically because Open sign-up is on.</p><p>' + btn(decideUrl(email, 'blocked'), 'Block', '#b3202a') + '</p>';
+  } else {
+    subject = 'S4C: ' + name + ' wants to score';
+    html = '<p>' + who + ' has asked for scorer access to Scoring 4 Cricket.</p><p>' + btn(decideUrl(email, 'approved'), 'Approve', '#1f7a3f') + btn(decideUrl(email, 'blocked'), 'Decline', '#b3202a') + '</p><p style="color:#666">You can also approve them in the app under Admin → Scorer access.</p>';
+  }
+  MailApp.sendEmail({ to: notifyTo(), subject: subject, htmlBody: html, name: 'Scoring 4 Cricket' });
+}
+
+function decidePage(email, status, key) {
+  var page = function (title, msg) {
+    return HtmlService.createHtmlOutput('<div style="font-family:system-ui,sans-serif;max-width:420px;margin:40px auto;padding:24px;border-radius:16px;background:#0B1E3F;color:#fff;text-align:center"><h2 style="color:#D4AF37;margin-top:0">' + title + '</h2><p>' + msg + '</p><p><a style="color:#D4AF37" href="https://scoring4cricket.github.io/">Open Scoring 4 Cricket</a></p></div>').setTitle('Scoring 4 Cricket');
+  };
+  email = String(email || '').toLowerCase();
+  if (['approved', 'blocked'].indexOf(status) < 0 || !key || key !== sign(email, status)) return page('Link not valid', 'This approval link is not valid. Use Admin → Scorer access in the app instead.');
+  var u = findRow('Users', email);
+  if (!u) return page('Not found', 'There is no request from ' + email + '.');
+  setUser(email, status, 'email link');
+  var n = String(u.values[1] || email).replace(/[<>&]/g, '');
+  return page(status === 'approved' ? 'Approved' : 'Declined', status === 'approved' ? n + ' can now score matches.' : n + ' can not score in the app.');
 }
 
 /* ---------- matches ---------- */
