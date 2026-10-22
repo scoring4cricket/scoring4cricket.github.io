@@ -706,7 +706,7 @@ body.cd main>.cardbox{flex:1 1 auto;min-height:0;display:flex;flex-direction:col
 body.cd .cardbox>.maintabs,body.cd .cardbox>.innbar{flex:none}
 body.cd .cardbox>.cbody{flex:1 1 auto;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;align-content:start}
 body.cd .cardbox>.cbody{grid-auto-rows:max-content}body.cd .cbody>*,body.cd .cbody .tbl{flex:none;min-height:auto;max-height:none;overflow-y:visible}
-a.btn{text-decoration:none}.dashbar{margin-top:2px}.dashbar button{font-size:14px;padding:10px 4px}
+a.btn{text-decoration:none}.dashbar{margin-top:2px;grid-template-columns:auto 1fr 1fr;align-items:center}.dashbar .dlab{padding:0 6px 0 10px;font-size:14px;font-weight:700;color:var(--muted)}.dashbar button{font-size:14px;padding:10px 4px}
 .sharebtns{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}.sharebtns .btn{flex:1 1 120px}
 header.top{top:0!important;padding-top:env(safe-area-inset-top,0px);background:var(--bg)!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
 :root[data-style="classic"] header.top{background:#0B1E3F!important}
@@ -975,7 +975,7 @@ function homeDash(){const L=lastDone(),n=doneCount();
   return `<div class="dash"><button class="btn big" data-act="newmatch">+ Start a new match</button>
     <button class="dbtn" data-act="hv" data-v="teams"><b>Squads and Teams</b><small>${S.teams.length} team${S.teams.length===1?'':'s'}</small><span class="go">›</span></button>
     <div class="dgroup"><button class="dbtn" data-act="hv" data-v="past"><b>Completed Matches</b><small>${n} match${n===1?'':'es'}</small><span class="go">›</span></button>${L?resultCard(L.m,L.i):''}</div>
-    <nav class="actbar dashbar" aria-label="Sharing"><button data-act="share" data-v="scorer"><span class="ai">✎</span>Scorer</button><button data-act="livelist"><span class="ai">◉</span>Live Score</button></nav>
+    <nav class="actbar dashbar" aria-label="Sharing"><span class="dlab">Share:</span><button data-act="share" data-v="scorer"><span class="ai">✎</span>Scorer</button><button data-act="livelist"><span class="ai">◉</span>Live Score</button></nav>
     <div class="biglogo dl"><img src="icons/logo.png" alt="Scoring 4 Cricket" width="220" height="220"></div></div>`}
 function homeMain(){
   const m=S.match,res=resultOf(m),k=cur(),s=stateOf(m,k);
