@@ -283,6 +283,12 @@
     return false;
   };
 
+  C.liveList = async () => {
+    if (!C.configured) return { error: 'not-configured' };
+    try { const r = await fetch(CFG.API_URL + '?action=liveList', { redirect: 'follow' }); return await r.json(); }
+    catch (e) { return { error: 'offline' }; }
+  };
+
   /* ---------- live viewer ---------- */
   let liveTimer = null, liveSig = '';
   async function pollLive() {

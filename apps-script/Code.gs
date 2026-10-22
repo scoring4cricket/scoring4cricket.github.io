@@ -29,6 +29,7 @@ function doGet(e) {
     if (p.action === 'live') return out(live(p.id));
     if (p.action === 'ping') return out({ ok: true, app: 'S4C', time: new Date().toISOString() });
     if (p.action === 'decide') return decidePage(p.e, p.s, p.k);
+    if (p.action === 'liveList') return out({ ok: true, matches: liveList() });
     return out({ error: 'unknown' });
   } catch (err) {
     return out({ error: 'server', detail: String(err) });
@@ -276,6 +277,17 @@ function getMatch(email, role, id) {
   if (!r) return { error: 'not-found' };
   if (role !== 'owner' && String(r.values[1]) !== email) return { error: 'not-yours' };
   return { ok: true, id: r.values[0], data: joinChunks(r.values, 5) };
+}
+
+/* Matches being scored right now (updated in the last 12 hours), for the Live Score list. Public, like live links. */
+function liveList() {
+  var v = sheet('Matches').getDataRange().getValues(), outv = [], since = Date.now() - 12 * 3600e3;
+  for (var i = 1; i < v.length; i++) {
+    if (!v[i][0] || String(v[i][3]) !== 'live') continue;
+    var t = new Date(v[i][4]).getTime();
+    if (t >= since) outv.push({ id: String(v[i][0]), title: String(v[i][2]), updated: t });
+  }
+  return outv.sort(function (a, b) { return b.updated - a.updated; }).slice(0, 30);
 }
 
 function live(id) {

@@ -706,6 +706,7 @@ body.cd main>.cardbox{flex:1 1 auto;min-height:0;display:flex;flex-direction:col
 body.cd .cardbox>.maintabs,body.cd .cardbox>.innbar{flex:none}
 body.cd .cardbox>.cbody{flex:1 1 auto;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;align-content:start}
 body.cd .cardbox>.cbody{grid-auto-rows:max-content}body.cd .cbody>*,body.cd .cbody .tbl{flex:none;min-height:auto;max-height:none;overflow-y:visible}
+a.btn{text-decoration:none}.dashbar{margin-top:2px}.dashbar button{font-size:14px;padding:10px 4px}
 .sharebtns{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}.sharebtns .btn{flex:1 1 120px}
 header.top{top:0!important;padding-top:env(safe-area-inset-top,0px);background:var(--bg)!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
 :root[data-style="classic"] header.top{background:#0B1E3F!important}
@@ -974,6 +975,7 @@ function homeDash(){const L=lastDone(),n=doneCount();
   return `<div class="dash"><button class="btn big" data-act="newmatch">+ Start a new match</button>
     <button class="dbtn" data-act="hv" data-v="teams"><b>Squads and Teams</b><small>${S.teams.length} team${S.teams.length===1?'':'s'}</small><span class="go">›</span></button>
     <div class="dgroup"><button class="dbtn" data-act="hv" data-v="past"><b>Completed Matches</b><small>${n} match${n===1?'':'es'}</small><span class="go">›</span></button>${L?resultCard(L.m,L.i):''}</div>
+    <nav class="actbar dashbar" aria-label="Sharing"><button data-act="share" data-v="scorer"><span class="ai">✎</span>Scorer</button><button data-act="livelist"><span class="ai">◉</span>Live Score</button></nav>
     <div class="biglogo dl"><img src="icons/logo.png" alt="Scoring 4 Cricket" width="220" height="220"></div></div>`}
 function homeMain(){
   const m=S.match,res=resultOf(m),k=cur(),s=stateOf(m,k);
@@ -1654,6 +1656,9 @@ function sheetView(){
       ${UI.err?`<p class="err">${esc(UI.err)}</p>`:''}
       <div class="row end"><button class="btn" data-act="wk-ok">Confirm wicket</button></div>`;
   }
+  else if(t==='livelist'){const j=UI.sheet.list,L=j&&j.matches;
+    h=`<h2>Live Score</h2><p class="sub" style="margin:0">Matches being scored right now. Open one to watch, or copy its link to send to spectators.</p>
+      <section class="panel" style="padding-block:4px">${!j?'<p class="sub">Loading…</p>':j.error?`<p class="sub">${j.error==='offline'?'You are offline.':j.error==='not-configured'?'Live scores are not connected yet.':'Live scores need the latest server update.'}</p>`:L.length?L.map(x=>{const u=CLOUD.liveUrl(x.id);return `<div class="req"><div style="min-width:0"><b>${esc(x.title)}</b><span class="sub">Updated ${new Date(x.updated).toLocaleTimeString('en-AU',{hour:'numeric',minute:'2-digit'})}</span></div><div class="row"><a class="btn small" href="${esc(u)}" target="_blank" rel="noopener">Watch</a><button class="btn ghost small" data-act="copy" data-v="${esc(u)}">Copy link</button></div></div>`}).join(''):'<p class="sub">No matches are being scored right now.</p>'}</section>`}
   else if(t==='share'){const m=S.match;const slug=(m.teams[0].name+'-v-'+m.teams[1].name).toLowerCase().replace(/[^a-z0-9]+/g,'-');
     const pub=UI.sheet.v==='public';if(!m.id&&window.CLOUD){m.id=CLOUD.uid();save()}const url=window.CLOUD?(pub?CLOUD.liveUrl(m.id):CLOUD.joinUrl()):'';
     h=`<h2>${pub?'Public live link':'Scorer link'}</h2>
@@ -1829,6 +1834,7 @@ document.addEventListener('click',ev=>{
     case 'hist-ask':UI.sheet={type:'hist',ask:+v};render();break;
     case 'hist-ok':{const ev=m.inns[cur()].ev,n=ev.length-(+v);ev.splice(+v);UI.sheet=null;render();toast(n+' action'+(n===1?'':'s')+' undone');break}
     case 'sharecard':UI.sheet={type:'sharecard'};render();break;
+    case 'livelist':UI.sheet={type:'livelist',list:null};render();if(window.CLOUD)CLOUD.liveList().then(j=>{if(UI.sheet&&UI.sheet.type==='livelist'){UI.sheet.list=j;render()}});break;
     case 'shareimg':shareCardImage();break;
     case 'sharepdf':sharePdf();break;
     case 'copytxt':{const t=summaryText(maskMatch(curM()));if(navigator.clipboard)navigator.clipboard.writeText(t).then(()=>toast('Copied'),()=>{});else toast('Select the text to copy');break}
