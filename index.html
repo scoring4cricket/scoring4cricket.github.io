@@ -1270,12 +1270,14 @@ function teamsView(){return `<div class="row" style="justify-content:space-betwe
   ${S.teams.length<=3?'<div class="biglogo tl"><img src="icons/logo.png" alt="Scoring 4 Cricket" width="220" height="220"></div>':''}`}
 function helpPanel(){return `<section class="panel"><h3><span>Help</span></h3><div class="row"><a class="btn ghost small" href="help.html">How to use</a><button class="btn ghost small" data-act="report">Report a problem</button></div></section>`}
 function isJunior(n){return /\b(u|under)\s?-?\d{1,2}s?\b|junior|juniors|youth|kids/i.test(String(n||''))}
+function sortSquad(t){if(!t||!t.squad)return;const before=t.squad.join('\u0001');t.squad.sort((a,b)=>String(a).localeCompare(String(b),'en',{sensitivity:'base'}));
+  if(t.squad.join('\u0001')!==before&&S.wiz){['sel','cap','vc','wk'].forEach(k=>{if(S.wiz[k])delete S.wiz[k][t.id]})}}
 function canEditT(t){return !window.CLOUD||CLOUD.canEdit(t)}
 function teamBy(t){const me=window.CLOUD&&CLOUD.user&&CLOUD.user.email;return t.owner&&t.owner!==me?' · by '+esc(t.ownerName||t.owner.split('@')[0]):''}
 function teamView(t){return `<div class="row" style="justify-content:space-between"><h2 class="home-h" style="margin:0">${esc(t.name)}</h2><button class="btn ghost small" data-act="hv" data-v="teams">Back</button></div>
   <section class="panel" style="display:grid;gap:8px"><div class="row" style="flex-wrap:nowrap;align-items:center">${badge(t,54)}<div><b>${esc(t.name)}</b><div class="sub">Created by ${esc(t.ownerName||(t.owner||'').split('@')[0]||'another scorer')}. Only its creator or the app owner can change it, but you can pick it for your matches.</div></div></div></section>
-  <section class="panel" style="display:grid;gap:4px"><h3><span>Squad</span><span>${t.squad.length} players</span></h3>${t.squad.map((n,i)=>`<div class="lu-row"><span class="lu-n">${i+1}</span><span class="lu-name">${esc(n)}${t.hands&&t.hands[n]==='L'?' <small class="sub">LHB</small>':''}</span></div>`).join('')||'<p class="sub">No players yet.</p>'}</section>`}
-function teamEdit(id){const t=teamById(id);if(!t){S.hv='teams';return teamsView()}if(!canEditT(t))return teamView(t);t.hands=t.hands||{};
+  <section class="panel" style="display:grid;gap:4px"><h3><span>Squad</span><span>${t.squad.length} players</span></h3>${t.squad.slice().sort((a,b)=>String(a).localeCompare(String(b),'en',{sensitivity:'base'})).map((n,i)=>`<div class="lu-row"><span class="lu-n">${i+1}</span><span class="lu-name">${esc(n)}${t.hands&&t.hands[n]==='L'?' <small class="sub">LHB</small>':''}</span></div>`).join('')||'<p class="sub">No players yet.</p>'}</section>`}
+function teamEdit(id){const t=teamById(id);if(!t){S.hv='teams';return teamsView()}if(!canEditT(t))return teamView(t);sortSquad(t);t.hands=t.hands||{};
   return `<div class="row" style="justify-content:space-between"><h2 class="home-h" style="margin:0">Edit team</h2><button class="btn ghost small" data-act="hv" data-v="teams">Done</button></div>
   <section class="panel" style="display:grid;gap:12px"><div class="row" style="flex-wrap:nowrap;align-items:center">${badge(t,54)}
     <div class="field" style="flex:1;min-width:0"><label for="te-name">Team name</label><input id="te-name" data-te="${t.id}" value="${esc(t.name)}"></div></div>
@@ -1418,7 +1420,7 @@ const THEMES=[
   {k:'classic',n:'S4C Classic',c:['#0B1E3F','#D4AF37','#FFFFFF']},
   {k:'aqua',n:'Aqua Teal',c:['#062B35','#4FD0DB','#1AA3B2']}];
 function themePicker(who){const t=THEMES.find(x=>x.k===S.style)||THEMES[0];return `<section class="panel"><div class="switch"><div style="min-width:0"><b>Theme</b><div class="sub">${who}</div></div>
-  <div class="thsel"><span class="sw sm">${t.c.map(c=>`<i style="background:${c}"></i>`).join('')}</span><select id="theme-sel" data-theme-sel="1" aria-label="Theme">${THEMES.map(x=>`<option value="${x.k}" ${x.k===S.style?'selected':''}>${x.n}</option>`).join('')}</select></div></div></section>`}
+  <div class="thsel"><span class="sw sm">${t.c.map(c=>`<i style="background:${c}"></i>`).join('')}</span><select id="theme-sel" data-theme-sel="1" aria-label="Theme">${THEMES.slice().sort((a,b)=>a.n.localeCompare(b.n)).map(x=>`<option value="${x.k}" ${x.k===S.style?'selected':''}>${x.n}</option>`).join('')}</select></div></div></section>`}
 function sn(n){n=String(n).trim();const w=n.split(/\s+/).filter(Boolean);return n.length>=12&&w.length>1?w.map(x=>x[0]).join('').toUpperCase():n}
 function snH(n){return `<span title="${esc(n)}">${esc(sn(n))}</span>`}
 function ini(n){const w=String(n).trim().split(/\s+/).filter(Boolean);return w.length>1?w.map(x=>x[0]).join('').toUpperCase():w[0].slice(0,3).toUpperCase()}
@@ -1876,7 +1878,7 @@ document.addEventListener('click',ev=>{
     case 'del-ok':m.deleted=true;m.end={why:'Deleted',text:'Match deleted'};UI.delAsk=false;UI.sheet=null;S.tab='home';S.hv='';render();toast('Match deleted');break;
     case 'hv':if(window.CLOUD&&(v==='teams'||(v||'').startsWith('team:')))CLOUD.pullTeams();S.hv=v||'';UI.err='';UI.rmP=null;UI.rmT=null;UI.rmH=null;render();window.scrollTo(0,0);break;
     case 't-create':{const n=(UI.tnew||'').trim();if(!n){UI.err='Type a team name first.';render();break}S.teams.push({id:'t'+Date.now()+Math.random().toString(36).slice(2,6),name:n,squad:[],hands:{}});UI.tnew='';UI.err='';render();toast('Team created');break}
-    case 't-addp':{const t=teamById(v),n=(UI.pnew||'').trim();if(!t||!n)break;t.squad.push(n);UI.pnew='';render();break}
+    case 't-addp':{const t=teamById(v),n=(UI.pnew||'').trim();if(!t||!n)break;t.squad.push(n);sortSquad(t);UI.pnew='';render();break}
     case 't-hand':{const [id,i]=v.split(':'),t=teamById(id),n=t.squad[+i];t.hands=t.hands||{};t.hands[n]=t.hands[n]==='L'?'R':'L';render();break}
     case 't-rm':UI.rmP=v;render();break;
     case 't-rmno':UI.rmP=null;render();break;
