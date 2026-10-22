@@ -1260,6 +1260,8 @@ function teamsView(){return `<div class="row" style="justify-content:space-betwe
   ${S.teams.length?'':'<p class="sub" style="margin:0">No teams yet. Create your first team below.</p>'}${S.teams.length?`<section class="panel tlist">`:'<section hidden>'}${S.teams.map(t=>`<button class="trow" data-act="hv" data-v="team:${t.id}">${badge(t)}<span class="tn2"><b>${esc(t.name)}</b><small>${t.squad.length} player${t.squad.length===1?'':'s'}${teamBy(t)}</small></span><span class="go">${canEditT(t)?'Edit':'View'} ›</span></button>`).join('')}</section>
   <section class="panel"><div class="field"><label for="nt2">New team</label><div class="row" style="flex-wrap:nowrap"><input id="nt2" data-tnew="1" placeholder="Team name" value="${esc(UI.tnew||'')}"><button class="btn" data-act="t-create">Create</button></div></div>${UI.err?`<p class="err">${esc(UI.err)}</p>`:''}</section>
   ${S.teams.length<=3?'<div class="biglogo tl"><img src="icons/logo.png" alt="Scoring 4 Cricket" width="220" height="220"></div>':''}`}
+function helpPanel(){return `<section class="panel"><h3><span>Help</span></h3><div class="row"><a class="btn ghost small" href="help.html">How to use</a><button class="btn ghost small" data-act="report">Report a problem</button></div></section>`}
+function isJunior(n){return /\b(u|under)\s?-?\d{1,2}s?\b|junior|juniors|youth|kids/i.test(String(n||''))}
 function canEditT(t){return !window.CLOUD||CLOUD.canEdit(t)}
 function teamBy(t){const me=window.CLOUD&&CLOUD.user&&CLOUD.user.email;return t.owner&&t.owner!==me?' · by '+esc(t.ownerName||t.owner.split('@')[0]):''}
 function teamView(t){return `<div class="row" style="justify-content:space-between"><h2 class="home-h" style="margin:0">${esc(t.name)}</h2><button class="btn ghost small" data-act="hv" data-v="teams">Back</button></div>
@@ -1552,7 +1554,7 @@ function adminView(){
   return `<section class="panel"><h3><span>Owner</span><span>Full control</span></h3>
     <div style="font-weight:700">${esc(who())}</div><div class="sub">${live&&CL.user?esc(CL.user.email)+' · ':''}Only owners can approve scorers and change settings.</div>
     ${live?'<div class="row end"><button class="btn ghost small" data-act="signout">Sign out</button></div>':'<p class="sub" style="margin:6px 0 0">Local mode: the Google connection is not set up yet, so matches are saved on this device only.</p>'}</section>
-  ${themePicker('Your device')}
+  ${helpPanel()}${themePicker('Your device')}
   ${prefsPanel()}
   ${activityPanel()}
   <section class="panel"><div class="switch"><div><b>Open sign-up</b><div class="sub">Off: new scorers request access and wait for your approval.</div></div>
@@ -1572,7 +1574,7 @@ function mineView(){
   <div class="row" style="justify-content:space-between"><h2 style="margin:0;font-size:17px">Matches</h2><button class="btn small" data-act="newmatch">+ New match</button></div>
   <section class="panel" style="padding-block:4px">${list.map(x=>`<div class="req"><div style="min-width:0"><b>${x.t}</b><span class="sub">${x.d} · ${x.sc}</span></div>
     ${x.open?`<button class="btn small" data-act="tab" data-v="score">Continue scoring</button>`:x.hi!=null?`<button class="btn ghost small" data-act="h-view" data-v="${x.hi}">Scorecard</button>`:'<span class="tag">Finished</span>'}</div>`).join('')||'<p class="sub">No matches yet.</p>'}</section>
-  ${themePicker('Your device')}
+  ${helpPanel()}${themePicker('Your device')}
   ${prefsPanel()}
   <section class="panel"><h3><span>What scorers can do</span></h3>
     <div class="kv"><span>Create teams and start matches</span><span class="tag ok">Yes</span></div>
@@ -1656,6 +1658,9 @@ function sheetView(){
       ${UI.err?`<p class="err">${esc(UI.err)}</p>`:''}
       <div class="row end"><button class="btn" data-act="wk-ok">Confirm wicket</button></div>`;
   }
+  else if(t==='report'){h=`<h2>Report a problem</h2><p class="sub" style="margin:0">Tell us what happened. This opens your email app with the details filled in, ready to send to scoring4cricket@gmail.com.</p>
+      <div class="field"><label for="rp-txt">What went wrong?</label><textarea id="rp-txt" rows="5" placeholder="e.g. After a wide the bowler's figures looked wrong"></textarea></div>
+      <div class="row end"><button class="btn" data-act="report-send">Open email</button></div>`}
   else if(t==='livelist'){const j=UI.sheet.list,L=j&&j.matches;
     h=`<h2>Live Score</h2><p class="sub" style="margin:0">Matches being scored right now. Open one to watch, or copy its link to send to spectators.</p>
       <section class="panel" style="padding-block:4px">${!j?'<p class="sub">Loading…</p>':j.error?`<p class="sub">${j.error==='offline'?'You are offline.':j.error==='not-configured'?'Live scores are not connected yet.':'Live scores need the latest server update.'}</p>`:L.length?L.map(x=>{const u=CLOUD.liveUrl(x.id);return `<div class="req"><div style="min-width:0"><b>${esc(x.title)}</b><span class="sub">Updated ${new Date(x.updated).toLocaleTimeString('en-AU',{hour:'numeric',minute:'2-digit'})}</span></div><div class="row"><a class="btn small" href="${esc(u)}" target="_blank" rel="noopener">Watch</a><button class="btn ghost small" data-act="copy" data-v="${esc(u)}">Copy link</button></div></div>`}).join(''):'<p class="sub">No matches are being scored right now.</p>'}</section>`}
@@ -1835,6 +1840,10 @@ document.addEventListener('click',ev=>{
     case 'hist-ok':{const ev=m.inns[cur()].ev,n=ev.length-(+v);ev.splice(+v);UI.sheet=null;render();toast(n+' action'+(n===1?'':'s')+' undone');break}
     case 'sharecard':UI.sheet={type:'sharecard'};render();break;
     case 'livelist':UI.sheet={type:'livelist',list:null};render();if(window.CLOUD)CLOUD.liveList().then(j=>{if(UI.sheet&&UI.sheet.type==='livelist'){UI.sheet.list=j;render()}});break;
+    case 'report':UI.sheet={type:'report'};render();break;
+    case 'report-send':{const tx=(document.getElementById('rp-txt')||{}).value||'';const mm=curM();const who_=window.CLOUD&&CLOUD.user?CLOUD.user.name+' <'+CLOUD.user.email+'>':'not signed in';
+      const body=tx+'\n\n---\nFrom: '+who_+'\nScreen: '+S.tab+(S.hv?' / '+S.hv:'')+'\nMatch: '+(mm&&!mm.deleted?(mm.teams[0].name+' v '+mm.teams[1].name+(mm.id?' ('+mm.id+')':'')):'none')+'\nApp: '+location.href.split('#')[0]+'\nDevice: '+navigator.userAgent+'\nTime: '+new Date().toString();
+      location.href='mailto:scoring4cricket@gmail.com?subject='+encodeURIComponent('S4C problem report')+'&body='+encodeURIComponent(body);UI.sheet=null;render();toast('Opening your email app…');break}
     case 'shareimg':shareCardImage();break;
     case 'sharepdf':sharePdf();break;
     case 'copytxt':{const t=summaryText(maskMatch(curM()));if(navigator.clipboard)navigator.clipboard.writeText(t).then(()=>toast('Copied'),()=>{});else toast('Select the text to copy');break}
@@ -2010,6 +2019,8 @@ document.addEventListener('change',ev=>{const t=ev.target;
   if(t.dataset.rv){UI.rv[t.dataset.rv]=t.value;return}
   if(t.dataset.themeSel){S.style=t.value;render();toast((THEMES.find(x=>x.k===t.value)||{}).n+' theme');return}
   if(t.dataset.w&&S.wiz){S.wiz[t.dataset.w]=t.value;
+    if(t.dataset.w==='pn')S.wiz.pnSet=1;
+    if((t.dataset.w==='a'||t.dataset.w==='b')&&!S.wiz.pnSet){const A=teamById(S.wiz.a),B=teamById(S.wiz.b);if((A&&isJunior(A.name))||(B&&isJunior(B.name)))S.wiz.pn='first'}
     if(t.dataset.w==='cp'&&t.value==='smca')Object.assign(S.wiz,{ty:'one',overs:'36',mo:'6',ra:'40',bm:'9',lms:'yes',rr:'yes',pr:'off'});
     if(t.dataset.w==='cp'&&t.value!=='smca')Object.assign(S.wiz,{bm:'0',lms:'no',rr:'no',ra:'0'});
     if(t.dataset.w==='cp'){const W=S.wiz,c=t.value;W.ty=c==='2d'?'two':'one';if(c==='t10')Object.assign(W,{overs:'10',mo:'2'});if(c==='t20')Object.assign(W,{overs:'20',mo:'4'});if(c==='od'&&['10','20','36','0'].includes(String(W.overs)))Object.assign(W,{overs:'50',mo:'10'});if(c==='2d')Object.assign(W,{overs:'0',mo:'0'})}

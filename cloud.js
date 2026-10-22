@@ -270,7 +270,7 @@
     else if (C.role === 'pending') body = `<h2>Waiting for approval</h2><p class="sub">Thanks ${e(C.user.name)} — your request has been sent. You can start scoring as soon as the owner approves you.</p>
       <div class="row end"><button class="btn ghost" data-act="signout">Sign out</button><button class="btn" data-act="rq-check">Check again</button></div>`;
     else body = `<h2>Access blocked</h2><p class="sub">This account (${e(C.user.email)}) can't score in this app. Contact the app owner if you think this is a mistake.</p><div class="row end"><button class="btn ghost" data-act="signout">Sign out</button></div>`;
-    return `<section class="panel gate">${head}${body}${C.err ? `<p class="err">${e(C.err)}</p>` : ''}</section>`;
+    return `<section class="panel gate">${head}${body}${C.err ? `<p class="err">${e(C.err)}</p>` : ''}<p class="sub" style="margin:4px 0 0"><a href="help.html" style="color:inherit">How to use Scoring 4 Cricket</a></p></section>`;
   };
 
   C.handle = (act, b) => {
