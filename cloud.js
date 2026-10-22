@@ -216,7 +216,7 @@
       const j = await api('listMatches');
       if (!j.ok) return;
       const have = new Set([S.match && S.match.id].concat((S.history || []).map(h => h.id)).filter(Boolean));
-      const mine = j.matches.filter(x => !have.has(x.id) && (C.role !== 'owner' || x.owner === C.user.email)).slice(-30);
+      const mine = j.matches.filter(x => !have.has(x.id) && (x.mine != null ? x.mine : (C.role !== 'owner' || x.owner === C.user.email))).slice(-50);
       let changed = false;
       for (const x of mine) {
         const g = await api('getMatch', { id: x.id });

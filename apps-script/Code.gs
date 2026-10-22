@@ -265,7 +265,8 @@ function listMatches(email, role) {
   for (var i = 1; i < v.length; i++) {
     if (!v[i][0]) continue;
     if (role !== 'owner' && String(v[i][1]) !== email) continue;
-    outv.push({ id: v[i][0], owner: v[i][1], title: v[i][2], status: v[i][3], updated: v[i][4] });
+    var ow = String(v[i][1]).toLowerCase();
+    outv.push({ id: v[i][0], owner: v[i][1], title: v[i][2], status: v[i][3], updated: v[i][4], mine: ow === email || (role === 'owner' && owners().indexOf(ow) >= 0) });
   }
   return outv;
 }
@@ -289,9 +290,29 @@ function live(id) {
 
 /* Shared team list: every approved scorer sees every team; only its creator or an owner can change it. */
 function listTeams() {
+  migrateLegacyTeams();
   var v = sheet('Squads').getDataRange().getValues(), outv = [];
   for (var i = 1; i < v.length; i++) if (v[i][0]) outv.push({ id: String(v[i][0]), owner: String(v[i][1]), data: joinChunks(v[i], 4) });
   return outv;
+}
+
+/* Teams saved by the first version of the app (one list per person) move into the shared Squads tab once. */
+function migrateLegacyTeams() {
+  if (props().getProperty('LEGACY_TEAMS_DONE') === '1') return;
+  withLock(function () {
+    var v = sheet('Teams').getDataRange().getValues();
+    for (var i = 1; i < v.length; i++) {
+      var email = String(v[i][0] || '').toLowerCase();
+      if (!email) continue;
+      var list; try { list = JSON.parse(joinChunks(v[i], 2) || '[]'); } catch (x) { continue; }
+      (list || []).forEach(function (t) {
+        if (!t || !t.id || findRow('Squads', t.id)) return;
+        t.owner = t.owner || email;
+        writeText('Squads', String(t.id), [String(t.id), t.owner, clean(t.name, 80), new Date()], JSON.stringify(t));
+      });
+    }
+    props().setProperty('LEGACY_TEAMS_DONE', '1');
+  });
 }
 
 function saveTeam(email, role, b) {
